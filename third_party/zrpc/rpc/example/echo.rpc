@@ -1,0 +1,9 @@
+# Native zRPC protocol table (NOT grpc service).
+# Wire format: protocol_id + protobuf payload.
+package echo
+proto echo.proto
+
+rpc Ping   1001  PingRequest  PongRepsonse
+rpc Fail   1002  PingRequest  PongRepsonse
+rpc Slow   1003  PingRequest  PongRepsonse
+rpc Flaky  1004  PingRequest  PongRepsonse

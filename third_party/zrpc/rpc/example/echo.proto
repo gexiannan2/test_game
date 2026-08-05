@@ -1,0 +1,13 @@
+syntax = "proto3";
+package echo;
+
+// Message definitions only. Native zRPC uses echo.rpc for protocol IDs.
+// gRPC stack (src/zrpc/grpc) may define its own service proto separately.
+
+message PingRequest {
+  string id = 1;
+}
+
+message PongRepsonse {
+  string id = 1;
+}

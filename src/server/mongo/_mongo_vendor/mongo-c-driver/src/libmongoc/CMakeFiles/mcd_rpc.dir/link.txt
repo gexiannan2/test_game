@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmcd-rpc.a "CMakeFiles/mcd_rpc.dir/src/mongoc/mcd-rpc.c.o"
+/usr/bin/ranlib libmcd-rpc.a

@@ -1,0 +1,13 @@
+syntax = "proto3";
+package echo;
+
+message PingRequest
+{
+   string id = 1;
+}
+
+message PongRepsonse
+{
+    string id = 1;
+}
+

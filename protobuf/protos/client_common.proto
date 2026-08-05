@@ -1,0 +1,229 @@
+// 客户端公共数据结构
+// 跨协议复用的通用类型, 非 cli_ 前缀的子消息, 不作为独立网络协议。
+//
+// _data 命名 = 数据载荷, req/res/ntf 三端共用。
+//
+// AOI 推送通道:
+//   [AOI 进入] cli_3d_aoi_appears_ntf     → entity_3d → PLAYER_DATA
+//   [AOI 更新] cli_3d_aoi_update_ntf      → entity_3d → MOVE/JUMP/DODGE/SKILL_DATA
+//   [AOI 离开] cli_3d_aoi_disappears_ntf  → entity_id_list
+//   [单播]     cli_3d_enter_map_ntf       → 仅目标玩家 (场景加载)
+//   [单播]     cli_3d_leave_map_ntf       → 仅目标玩家 (场景卸载)
+
+syntax = "proto3";
+
+// 跳跃操作类型 (起跳/空中转向/落地)
+enum jump_op {
+    JUMP_START = 0;  // 起跳
+    JUMP_STEER = 1;  // 空中转向
+    JUMP_LAND  = 2;  // 落地
+}
+
+// 玩家实体完整数据 (空间 + 属性 + 战斗, 用于 appear/appear_ntf)
+message entity_player_data {
+    entity           base      = 1;
+    entity_base_data base_data = 2;
+    entity_battle    battle    = 3;
+}
+
+// 移动同步数据 (req/res/update_ntf 共用)
+message entity_move_data {
+    vec3        pos         = 1;
+    move_status status      = 2;
+    quat        rot         = 3;
+    quat        move_rot    = 4;
+    vec3        velocity    = 5;
+    uint64      client_time = 6;
+}
+
+// 跳跃同步数据 (req/res/update_ntf 共用)
+message entity_jump_data {
+    uint32 jump_id     = 1;
+    jump_op op         = 2;
+    vec3   pos         = 3;
+    quat   rot         = 4;
+    vec3   velocity    = 5;
+    uint64 client_time = 6;
+}
+
+// 闪避同步数据 (req/res/update_ntf 共用)
+message entity_dodge_data {
+    vec3   pos         = 1;
+    quat   rot         = 2;
+    uint64 client_time = 3;
+}
+
+// 武器胶囊体 (攻击发起时生成, 用于碰撞检测)
+message weapon_capsule {
+    vec3  pos    = 1;
+    quat  rot    = 2;
+    float radius = 3;
+    float height = 4;
+}
+
+// 技能同步数据 (req/res/update_ntf 共用)
+message entity_skill_data {
+    uint32         skill_cfg_id = 1;
+    uint32         combo_index  = 2;
+    vec3           pos          = 3;
+    quat           rot          = 4;
+    uint64         client_time  = 5;
+    entity_battle  battle       = 6;
+    weapon_capsule weapon       = 7;
+}
+
+// 实体数据载荷类型 (entity_3d.entity_data_list 的 type 字段)
+// 用于 appears_ntf / update_ntf 的 entity_3d 包装, 非独立协议。
+enum entity_data_type {
+    ENTITY_DATA_TYPE_INVALID      = 0;  // 占位
+    ENTITY_DATA_TYPE_PLAYER_DATA  = 1;  // entity_player_data  ([AOI] 进入视野, appears_ntf)
+    ENTITY_DATA_TYPE_MOVE_DATA    = 2;  // entity_move_data    ([AOI] 移动同步, update_ntf)
+    ENTITY_DATA_TYPE_JUMP_DATA    = 3;  // entity_jump_data    ([AOI] 跳跃/转向, update_ntf)
+    ENTITY_DATA_TYPE_DODGE_DATA   = 4;  // entity_dodge_data   ([AOI] 闪避, update_ntf)
+    ENTITY_DATA_TYPE_SKILL_DATA   = 5;  // entity_skill_data   ([AOI] 技能/攻击, update_ntf)
+}
+
+// 通用实体数据 (type + bytes, 序列化后填入 entity_3d.entity_data_list)
+message entity_data {
+    entity_data_type type = 1;
+    bytes            data = 2;
+}
+
+// 实体空间+运动数据 (位置/朝向/速度/类型/配置)
+message entity {
+    uint64      id       = 1;  // 实体实例ID
+    vec3        pos      = 2;  // 位置 (x=水平X, y=高度Y, z=水平Z)
+    quat        rot      = 3;  // 朝向 (四元数)
+    entity_type type     = 4;  // 实体类型
+    quat        move_rot = 5;  // 移动朝向 (四元数)
+    vec3        velocity = 6;  // 移动速度向量
+    uint32      cfg_id   = 7;  // 配置表ID
+    int32       layer    = 8;  // 分层 (AOI 层级)
+}
+
+// 实体战斗数据 (攻击发起时同步, 非战斗时不填充)
+message entity_battle {
+    vec3 weapon_pos = 1;  // 武器世界坐标 (3D 骨骼武器变换)
+    quat weapon_rot = 2;  // 武器世界朝向 (四元数)
+    quat attack_rot = 3;  // 攻击朝向 (四元数, 挥击方向)
+}
+
+// 外观装备栏位 (槽位id→外观value)
+message entity_appear_item {
+    uint32 id    = 1;  // 槽位ID (装备栏/时装栏等)
+    uint64 value = 2;  // 外观值 (装备模型ID/时装ID等)
+}
+
+// 实体基础属性 (lv/job/sex/face_id 等外观数据)
+message entity_base_data {
+    uint32 lv             = 1;   // 等级
+    uint32 job            = 2;   // 职业
+    uint32 sex            = 3;   // 性别
+    uint32 face_id        = 4;   // 面部ID
+    uint32 chat_bg_id     = 5;   // 聊天背景ID
+    uint32 avatar_id      = 6;   // 头像ID
+    uint32 photo_frame_id = 7;   // 头像框ID
+    uint64 group_id       = 8;   // 行会ID
+    uint64 guild_id       = 9;   // 组队ID
+    string name           = 10;  // 名称
+    uint32 re_level       = 11;  // 转职等级
+    int32  good_evil_id   = 12;  // 正邪阵营
+    uint32 walk_speed     = 13;  // 走路速度
+    uint32 magic_speed    = 14;  // 施法速度
+    uint64 camp_id        = 15;  // 阵营ID
+    uint64 sp_camp_id     = 16;  // 特殊阵营ID
+    uint64 flag_state     = 17;  // 状态位 (死亡/上马/隐身 等, 见 entity_state_flag)
+    string guild_name     = 18;  // 行会名称
+    uint64 exp_hitter     = 19;  // 归属ID
+    repeated entity_appear_item appear_list = 20;  // 外观装备列表 (槽位id→外观value)
+}
+
+// 坐标 (y-up: x=水平X, y=高度Y, z=水平Z)
+message vec3 {
+    float x = 1;  // 水平X
+    float y = 2;  // 高度Y
+    float z = 3;  // 水平Z
+}
+
+// 四元数旋转 (w + x*i + y*j + z*k)
+message quat {
+    float x = 1;  // 虚部 i
+    float y = 2;  // 虚部 j
+    float z = 3;  // 虚部 k
+    float w = 4;  // 实部
+}
+
+// AOI 实体类型 (与 C++ entity_cfg_type 一一对应)
+enum entity_type {
+    ENTITY_NONE    = 0;  // 未定义
+    ENTITY_PLAYER  = 1;  // 玩家
+    ENTITY_MONSTER = 2;  // 怪物
+    ENTITY_MAP     = 3;  // 地图物件 (传送点/区域触发器等)
+    ENTITY_ITEM    = 4;  // 地图道具 (掉落物/采集物等)
+    ENTITY_BUF     = 5;  // Buff 实体
+    ENTITY_MAGIC   = 6;  // 技能实体 (弹道/区域效果等)
+    ENTITY_ATTR    = 7;  // 属性实体
+}
+
+// 移动方式 (走路/奔跑/跳跃等)
+enum move_status {
+    MOVE_STATUS_IDLE  = 0;  // 待机
+    MOVE_STATUS_WALK  = 1;  // 走路
+    MOVE_STATUS_RUN   = 2;  // 奔跑
+    MOVE_STATUS_JUMP  = 3;  // 跳跃中
+    MOVE_STATUS_DODGE = 4;  // 闪避翻滚中
+    MOVE_STATUS_FALL  = 5;  // 下落
+}
+
+// 错误码 (所有 res 必须包含)
+enum error_code {
+    ERR_CODE_SUCCESS        = 0;   // 成功
+    ERR_CODE_FAIL           = 1;   // 通用失败
+    ERR_CODE_INVALID_PARAM  = 2;   // 参数错误
+    ERR_CODE_TIMEOUT        = 3;   // 超时
+    ERR_CODE_NOT_FOUND      = 4;   // 未找到
+    ERR_CODE_PERMISSION     = 5;   // 权限不足
+    ERR_CODE_LIMIT_EXCEED   = 6;   // 超出限制
+    ERR_CODE_STATE_INVALID  = 7;   // 状态非法
+    ERR_CODE_COOLDOWN       = 8;   // 冷却中
+    ERR_CODE_NOT_IN_MAP     = 9;   // 不在地图中
+    ERR_CODE_NOT_IN_SCENE   = 10;  // 不在场景中
+    ERR_CODE_DISTANCE_LIMIT = 11;  // 距离限制
+    ERR_CODE_IN_COMBAT      = 12;  // 战斗中限制
+    ERR_CODE_DEAD           = 13;  // 角色已死亡
+}
+
+// 实体属性类型 (HP/MP/速度等, 用于属性更新通知)
+enum entity_attr_type {
+    ENTITY_ATTR_HP     = 0;  // 生命值
+    ENTITY_ATTR_MP     = 1;  // 法力值
+    ENTITY_ATTR_MAX_HP = 2;  // 最大生命值
+    ENTITY_ATTR_MAX_MP = 3;  // 最大法力值
+    ENTITY_ATTR_ATK    = 4;  // 攻击力
+    ENTITY_ATTR_DEF    = 5;  // 防御力
+    ENTITY_ATTR_SPEED  = 6;  // 移动速度
+    ENTITY_ATTR_CRIT   = 7;  // 暴击率
+}
+
+// 实体状态标志位 (bitmask, 可组合)
+enum entity_state_flag {
+    ENTITY_STATE_FLAG_NONE      = 0;   // 无状态
+    ENTITY_STATE_FLAG_DEAD      = 1;   // 死亡
+    ENTITY_STATE_FLAG_STUN      = 2;   // 眩晕
+    ENTITY_STATE_FLAG_SILENCE   = 4;   // 沉默
+    ENTITY_STATE_FLAG_IMMUNE    = 8;   // 免疫
+    ENTITY_STATE_FLAG_INVISIBLE = 16;  // 隐身
+    ENTITY_STATE_FLAG_MOUNT     = 32;  // 骑乘
+}
+
+// AOI 实体广播包装 (appears_ntf / update_ntf 公用)
+// entity_data_list 承载多种数据载荷, 按 entity_data_type 区分:
+//   [AOI 进入] appears_ntf: PLAYER_DATA (完整数据)
+//   [AOI 更新] update_ntf:  MOVE/JUMP/DODGE/SKILL_DATA (增量)
+// 非 AOI 通道 (enter/leave_map_ntf) 不经过此包装。
+message entity_3d {
+    uint64               entity_id       = 1;  // 实体实例ID (接收方定位实体用)
+    entity_type          type            = 2;  // 实体类型
+    bool                 is_self         = 3;  // 是否是自己 (区分本地玩家和网络玩家)
+    repeated entity_data entity_data_list = 4;
+}

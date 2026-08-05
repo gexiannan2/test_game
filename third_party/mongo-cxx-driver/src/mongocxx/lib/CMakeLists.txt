@@ -1,0 +1,351 @@
+# Copyright 2009-present MongoDB, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set(mongocxx_sources_private
+    mongocxx/private/mongoc.cpp
+    mongocxx/private/scoped_bson.cpp
+)
+
+set(mongocxx_sources_v_noabi
+    mongocxx/v_noabi/mongocxx/bulk_write.cpp
+    mongocxx/v_noabi/mongocxx/change_stream.cpp
+    mongocxx/v_noabi/mongocxx/client_encryption.cpp
+    mongocxx/v_noabi/mongocxx/client_session.cpp
+    mongocxx/v_noabi/mongocxx/client.cpp
+    mongocxx/v_noabi/mongocxx/collection.cpp
+    mongocxx/v_noabi/mongocxx/config/config.cpp
+    mongocxx/v_noabi/mongocxx/config/export.cpp
+    mongocxx/v_noabi/mongocxx/config/version.cpp
+    mongocxx/v_noabi/mongocxx/conversions.cpp
+    mongocxx/v_noabi/mongocxx/cursor.cpp
+    mongocxx/v_noabi/mongocxx/database.cpp
+    mongocxx/v_noabi/mongocxx/events/command_failed_event.cpp
+    mongocxx/v_noabi/mongocxx/events/command_started_event.cpp
+    mongocxx/v_noabi/mongocxx/events/command_succeeded_event.cpp
+    mongocxx/v_noabi/mongocxx/events/heartbeat_failed_event.cpp
+    mongocxx/v_noabi/mongocxx/events/heartbeat_started_event.cpp
+    mongocxx/v_noabi/mongocxx/events/heartbeat_succeeded_event.cpp
+    mongocxx/v_noabi/mongocxx/events/server_changed_event.cpp
+    mongocxx/v_noabi/mongocxx/events/server_closed_event.cpp
+    mongocxx/v_noabi/mongocxx/events/server_description.cpp
+    mongocxx/v_noabi/mongocxx/events/server_opening_event.cpp
+    mongocxx/v_noabi/mongocxx/events/topology_changed_event.cpp
+    mongocxx/v_noabi/mongocxx/events/topology_closed_event.cpp
+    mongocxx/v_noabi/mongocxx/events/topology_description.cpp
+    mongocxx/v_noabi/mongocxx/events/topology_opening_event.cpp
+    mongocxx/v_noabi/mongocxx/exception/authentication_exception.cpp
+    mongocxx/v_noabi/mongocxx/exception/bulk_write_exception.cpp
+    mongocxx/v_noabi/mongocxx/exception/error_code.cpp
+    mongocxx/v_noabi/mongocxx/exception/exception.cpp
+    mongocxx/v_noabi/mongocxx/exception/gridfs_exception.cpp
+    mongocxx/v_noabi/mongocxx/exception/logic_error.cpp
+    mongocxx/v_noabi/mongocxx/exception/operation_exception.cpp
+    mongocxx/v_noabi/mongocxx/exception/query_exception.cpp
+    mongocxx/v_noabi/mongocxx/exception/server_error_code.cpp
+    mongocxx/v_noabi/mongocxx/exception/write_exception.cpp
+    mongocxx/v_noabi/mongocxx/gridfs/bucket.cpp
+    mongocxx/v_noabi/mongocxx/gridfs/downloader.cpp
+    mongocxx/v_noabi/mongocxx/gridfs/uploader.cpp
+    mongocxx/v_noabi/mongocxx/hint.cpp
+    mongocxx/v_noabi/mongocxx/index_model.cpp
+    mongocxx/v_noabi/mongocxx/index_view.cpp
+    mongocxx/v_noabi/mongocxx/instance.cpp
+    mongocxx/v_noabi/mongocxx/logger.cpp
+    mongocxx/v_noabi/mongocxx/model/delete_many.cpp
+    mongocxx/v_noabi/mongocxx/model/delete_one.cpp
+    mongocxx/v_noabi/mongocxx/model/insert_one.cpp
+    mongocxx/v_noabi/mongocxx/model/replace_one.cpp
+    mongocxx/v_noabi/mongocxx/model/update_many.cpp
+    mongocxx/v_noabi/mongocxx/model/update_one.cpp
+    mongocxx/v_noabi/mongocxx/model/write.cpp
+    mongocxx/v_noabi/mongocxx/options/aggregate.cpp
+    mongocxx/v_noabi/mongocxx/options/apm.cpp
+    mongocxx/v_noabi/mongocxx/options/auto_encryption.cpp
+    mongocxx/v_noabi/mongocxx/options/bulk_write.cpp
+    mongocxx/v_noabi/mongocxx/options/change_stream.cpp
+    mongocxx/v_noabi/mongocxx/options/client_encryption.cpp
+    mongocxx/v_noabi/mongocxx/options/client_session.cpp
+    mongocxx/v_noabi/mongocxx/options/client.cpp
+    mongocxx/v_noabi/mongocxx/options/count.cpp
+    mongocxx/v_noabi/mongocxx/options/data_key.cpp
+    mongocxx/v_noabi/mongocxx/options/delete.cpp
+    mongocxx/v_noabi/mongocxx/options/distinct.cpp
+    mongocxx/v_noabi/mongocxx/options/encrypt.cpp
+    mongocxx/v_noabi/mongocxx/options/estimated_document_count.cpp
+    mongocxx/v_noabi/mongocxx/options/find_one_and_delete.cpp
+    mongocxx/v_noabi/mongocxx/options/find_one_and_replace.cpp
+    mongocxx/v_noabi/mongocxx/options/find_one_and_update.cpp
+    mongocxx/v_noabi/mongocxx/options/find.cpp
+    mongocxx/v_noabi/mongocxx/options/gridfs/bucket.cpp
+    mongocxx/v_noabi/mongocxx/options/gridfs/upload.cpp
+    mongocxx/v_noabi/mongocxx/options/index_view.cpp
+    mongocxx/v_noabi/mongocxx/options/index.cpp
+    mongocxx/v_noabi/mongocxx/options/insert.cpp
+    mongocxx/v_noabi/mongocxx/options/pool.cpp
+    mongocxx/v_noabi/mongocxx/options/range.cpp
+    mongocxx/v_noabi/mongocxx/options/replace.cpp
+    mongocxx/v_noabi/mongocxx/options/rewrap_many_datakey.cpp
+    mongocxx/v_noabi/mongocxx/options/server_api.cpp
+    mongocxx/v_noabi/mongocxx/options/tls.cpp
+    mongocxx/v_noabi/mongocxx/options/transaction.cpp
+    mongocxx/v_noabi/mongocxx/options/update.cpp
+    mongocxx/v_noabi/mongocxx/pipeline.cpp
+    mongocxx/v_noabi/mongocxx/pool.cpp
+    mongocxx/v_noabi/mongocxx/read_concern.cpp
+    mongocxx/v_noabi/mongocxx/read_preference.cpp
+    mongocxx/v_noabi/mongocxx/result/bulk_write.cpp
+    mongocxx/v_noabi/mongocxx/result/delete.cpp
+    mongocxx/v_noabi/mongocxx/result/gridfs/upload.cpp
+    mongocxx/v_noabi/mongocxx/result/insert_many.cpp
+    mongocxx/v_noabi/mongocxx/result/insert_one.cpp
+    mongocxx/v_noabi/mongocxx/result/replace_one.cpp
+    mongocxx/v_noabi/mongocxx/result/rewrap_many_datakey.cpp
+    mongocxx/v_noabi/mongocxx/result/update.cpp
+    mongocxx/v_noabi/mongocxx/search_index_model.cpp
+    mongocxx/v_noabi/mongocxx/search_index_view.cpp
+    mongocxx/v_noabi/mongocxx/uri.cpp
+    mongocxx/v_noabi/mongocxx/validation_criteria.cpp
+    mongocxx/v_noabi/mongocxx/write_concern.cpp
+)
+
+set(mongocxx_sources_v1
+    mongocxx/v1/aggregate_options.cpp
+    mongocxx/v1/apm.cpp
+    mongocxx/v1/auto_encryption_options.cpp
+    mongocxx/v1/bulk_write.cpp
+    mongocxx/v1/change_stream.cpp
+    mongocxx/v1/client_bulk_write.cpp
+    mongocxx/v1/client_encryption.cpp
+    mongocxx/v1/client_session.cpp
+    mongocxx/v1/client.cpp
+    mongocxx/v1/collection.cpp
+    mongocxx/v1/config/config.cpp
+    mongocxx/v1/config/export.cpp
+    mongocxx/v1/config/version.cpp
+    mongocxx/v1/count_options.cpp
+    mongocxx/v1/cursor.cpp
+    mongocxx/v1/data_key_options.cpp
+    mongocxx/v1/database.cpp
+    mongocxx/v1/delete_many_options.cpp
+    mongocxx/v1/delete_many_result.cpp
+    mongocxx/v1/delete_one_options.cpp
+    mongocxx/v1/delete_one_result.cpp
+    mongocxx/v1/detail/postlude.cpp
+    mongocxx/v1/detail/prelude.cpp
+    mongocxx/v1/distinct_options.cpp
+    mongocxx/v1/encrypt_options.cpp
+    mongocxx/v1/estimated_document_count_options.cpp
+    mongocxx/v1/events/command_failed.cpp
+    mongocxx/v1/events/command_started.cpp
+    mongocxx/v1/events/command_succeeded.cpp
+    mongocxx/v1/events/server_closed.cpp
+    mongocxx/v1/events/server_description_changed.cpp
+    mongocxx/v1/events/server_description.cpp
+    mongocxx/v1/events/server_heartbeat_failed.cpp
+    mongocxx/v1/events/server_heartbeat_started.cpp
+    mongocxx/v1/events/server_heartbeat_succeeded.cpp
+    mongocxx/v1/events/server_opening.cpp
+    mongocxx/v1/events/topology_closed.cpp
+    mongocxx/v1/events/topology_description_changed.cpp
+    mongocxx/v1/events/topology_description.cpp
+    mongocxx/v1/events/topology_opening.cpp
+    mongocxx/v1/exception.cpp
+    mongocxx/v1/find_one_and_delete_options.cpp
+    mongocxx/v1/find_one_and_replace_options.cpp
+    mongocxx/v1/find_one_and_update_options.cpp
+    mongocxx/v1/find_options.cpp
+    mongocxx/v1/gridfs/bucket.cpp
+    mongocxx/v1/gridfs/downloader.cpp
+    mongocxx/v1/gridfs/upload_options.cpp
+    mongocxx/v1/gridfs/upload_result.cpp
+    mongocxx/v1/gridfs/uploader.cpp
+    mongocxx/v1/hint.cpp
+    mongocxx/v1/indexes.cpp
+    mongocxx/v1/insert_many_options.cpp
+    mongocxx/v1/insert_many_result.cpp
+    mongocxx/v1/insert_one_options.cpp
+    mongocxx/v1/insert_one_result.cpp
+    mongocxx/v1/instance.cpp
+    mongocxx/v1/logger.cpp
+    mongocxx/v1/oidc_callback.cpp
+    mongocxx/v1/oidc_callback_params.cpp
+    mongocxx/v1/oidc_credential.cpp
+    mongocxx/v1/pipeline.cpp
+    mongocxx/v1/pool.cpp
+    mongocxx/v1/range_options.cpp
+    mongocxx/v1/read_concern.cpp
+    mongocxx/v1/read_preference.cpp
+    mongocxx/v1/replace_one_options.cpp
+    mongocxx/v1/replace_one_result.cpp
+    mongocxx/v1/return_document.cpp
+    mongocxx/v1/rewrap_many_datakey_options.cpp
+    mongocxx/v1/rewrap_many_datakey_result.cpp
+    mongocxx/v1/search_indexes.cpp
+    mongocxx/v1/server_api.cpp
+    mongocxx/v1/server_error.cpp
+    mongocxx/v1/text_options.cpp
+    mongocxx/v1/tls.cpp
+    mongocxx/v1/transaction_options.cpp
+    mongocxx/v1/update_many_options.cpp
+    mongocxx/v1/update_many_result.cpp
+    mongocxx/v1/update_one_options.cpp
+    mongocxx/v1/update_one_result.cpp
+    mongocxx/v1/uri.cpp
+    mongocxx/v1/write_concern.cpp
+)
+
+file(GLOB_RECURSE mongocxx_headers
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    CONFIGURE_DEPENDS
+    "*.hh"
+)
+
+list(APPEND mongocxx_sources
+    ${mongocxx_sources_private}
+    ${mongocxx_sources_v1}
+)
+
+if(MONGOCXX_ENABLE_UNSTABLE_ABI)
+    list(APPEND mongocxx_sources ${mongocxx_sources_v_noabi})
+endif()
+
+list(TRANSFORM mongocxx_sources PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+set(mongocxx_sources "${mongocxx_sources}" PARENT_SCOPE)
+
+# Generate private headers.
+if(1)
+    if(DEFINED CMAKE_CXX_COMPILER_ID)
+        set(MONGOCXX_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
+    else()
+        set(MONGOCXX_COMPILER_ID "Unknown")
+    endif()
+
+    if(DEFINED CMAKE_CXX_COMPILER_VERSION)
+        set(MONGOCXX_COMPILER_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
+    else()
+        set(MONGOCXX_COMPILER_VERSION "Unknown")
+    endif()
+
+    configure_file(
+        mongocxx/private/config/config.hh.in
+        mongocxx/private/config/config.hh
+    )
+endif()
+
+# Generate and install public headers.
+if(1)
+    configure_file(
+        mongocxx/v1/config/config.hpp.in
+        mongocxx/v1/config/config.hpp
+    )
+
+    configure_file(
+        mongocxx/v1/config/version.hpp.in
+        mongocxx/v1/config/version.hpp
+    )
+
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/mongocxx/v1/config/config.hpp
+        ${CMAKE_CURRENT_BINARY_DIR}/mongocxx/v1/config/version.hpp
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mongocxx/v1/config
+        COMPONENT dev
+    )
+
+    configure_file(
+        mongocxx/v_noabi/mongocxx/config/config.hpp.in
+        mongocxx/v_noabi/mongocxx/config/config.hpp
+    )
+
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/mongocxx/v_noabi/mongocxx/config/config.hpp
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mongocxx/v_noabi/mongocxx/config
+        COMPONENT dev
+    )
+
+    if(1)
+        file(GLOB_RECURSE mongocxx_v_noabi_fwd_headers
+            RELATIVE "${PROJECT_SOURCE_DIR}/include/mongocxx/v_noabi"
+            CONFIGURE_DEPENDS
+            "${PROJECT_SOURCE_DIR}/include/mongocxx/v_noabi/mongocxx/*-fwd.hpp"
+        )
+        list(SORT mongocxx_v_noabi_fwd_headers)
+
+        if("${mongocxx_v_noabi_fwd_headers}" STREQUAL "")
+            message(FATAL_ERROR "No mongocxx v_noabi forward headers found by file(GLOB_RECURSE)")
+        endif()
+
+        set(MONGOCXX_V_NOABI_FWD_INCLUDES "")
+        foreach(header IN LISTS mongocxx_v_noabi_fwd_headers)
+            string(APPEND MONGOCXX_V_NOABI_FWD_INCLUDES "#include <${header}> // IWYU pragma: export\n")
+        endforeach()
+        string(STRIP "${MONGOCXX_V_NOABI_FWD_INCLUDES}" MONGOCXX_V_NOABI_FWD_INCLUDES)
+
+        configure_file(
+            mongocxx/v_noabi/mongocxx/fwd.hpp.in
+            mongocxx/v_noabi/mongocxx/fwd.hpp
+            @ONLY
+        )
+
+        install(FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/mongocxx/v_noabi/mongocxx/fwd.hpp
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mongocxx/v_noabi/mongocxx
+            COMPONENT dev
+        )
+    endif()
+
+    if(1)
+        file(GLOB_RECURSE mongocxx_v1_fwd_headers
+            RELATIVE "${PROJECT_SOURCE_DIR}/include"
+            CONFIGURE_DEPENDS
+            "${PROJECT_SOURCE_DIR}/include/mongocxx/v1/*-fwd.hpp"
+        )
+        list(SORT mongocxx_v1_fwd_headers)
+
+        if("${mongocxx_v1_fwd_headers}" STREQUAL "")
+            message(FATAL_ERROR "No mongocxx v1 forward headers found by file(GLOB_RECURSE)")
+        endif()
+
+        set(MONGOCXX_V1_FWD_INCLUDES "")
+        foreach(header IN LISTS mongocxx_v1_fwd_headers)
+            string(APPEND MONGOCXX_V1_FWD_INCLUDES "#include <${header}> // IWYU pragma: export\n")
+        endforeach()
+        string(STRIP "${MONGOCXX_V1_FWD_INCLUDES}" MONGOCXX_V1_FWD_INCLUDES)
+
+        configure_file(
+            mongocxx/v1/fwd.hpp.in
+            mongocxx/v1/fwd.hpp
+            @ONLY
+        )
+
+        install(FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/mongocxx/v1/fwd.hpp
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mongocxx/v1
+            COMPONENT dev
+        )
+    endif()
+endif()
+
+set_dist_list(src_mongocxx_lib_DIST
+    CMakeLists.txt
+    ${mongocxx_sources_private}
+    ${mongocxx_sources_v_noabi}
+    ${mongocxx_sources_v1}
+    ${mongocxx_headers}
+    mongocxx/private/config/config.hh.in
+    mongocxx/v_noabi/mongocxx/config/config.hpp.in
+    mongocxx/v_noabi/mongocxx/fwd.hpp.in
+    mongocxx/v1/config/config.hpp.in
+    mongocxx/v1/config/version.hpp.in
+    mongocxx/v1/fwd.hpp.in
+)

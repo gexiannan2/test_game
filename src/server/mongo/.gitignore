@@ -1,0 +1,7 @@
+/build/
+/out/
+/results/
+/.vs/
+
+# 驱动源码在仓库根 third_party/mongo-{c,cxx}-driver。
+# VS 远程勿用无锚定的 --exclude=build，否则会丢掉 C Driver 的 build/cmake 模块。

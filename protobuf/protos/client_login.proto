@@ -1,0 +1,163 @@
+// 登录与会话协议 (握手 / 账号登录 / 角色管理 / 进游戏 / 心跳重连 / 踢人)
+syntax = "proto3";
+
+import "client_common.proto";
+
+// 握手请求 (C→S)
+message cli_handshake_req
+{
+  string version = 1;  // 客户端版本号
+}
+
+// 握手回复 (S→C)
+message cli_handshake_res
+{
+  error_code err_code = 1;  // 错误码
+  string     msg      = 2;  // 提示消息
+}
+
+// 账号登录请求 (C→S)
+message cli_user_login_req
+{
+  string uid        = 1;  // 账号UID
+  string token      = 2;  // 登录令牌
+  uint32 channel_id = 3;  // 渠道ID (0=内部登录)
+}
+
+// 账号登录回复 (S→C, 含分配的 session_id 和 gate 地址)
+message cli_user_login_res
+{
+  error_code err_code   = 1;  // 错误码
+  uint64     session_id = 2;  // 会话ID
+  string     gate_addr  = 3;  // 网关地址
+}
+
+// 角色信息 (角色列表/创建/恢复用)
+message cli_role_info
+{
+  uint64 role_id     = 1;   // 角色ID
+  string name        = 2;   // 角色名
+  uint32 sex         = 3;   // 性别
+  uint32 job         = 4;   // 职业
+  uint32 re_level    = 5;   // 转职等级
+  uint64 create_time = 6;   // 创建时间
+  bool   deny_ip     = 7;   // 是否封禁IP
+  bool   deny_account = 8;  // 是否封禁账号
+  bool   deny_uid    = 9;   // 是否封禁UID
+  string deny_msg    = 10;  // 封禁提示消息
+  uint64 deny_time   = 11;  // 封禁到期时间
+  bool   new_char    = 12;  // 是否新角色
+  bool   lock_char   = 13;  // 是否锁定角色
+  bool   last        = 14;  // 是否最后一个角色 (列表分页标记)
+  bytes  looks       = 15;  // 外观数据 (项目组自定义)
+}
+
+// 角色列表请求 (C→S)
+message cli_role_list_req
+{
+  uint64 session_id = 1;  // 会话ID
+}
+
+// 创建角色请求 (C→S)
+message cli_role_create_req
+{
+  uint64       session_id = 1;  // 会话ID
+  cli_role_info role_info = 2;  // 角色信息
+}
+
+// 删除角色请求 (C→S)
+message cli_role_delete_req
+{
+  uint64 session_id = 1;  // 会话ID
+  uint64 role_id    = 2;  // 角色ID
+}
+
+// 角色列表回复 (S→C, 查询/创建/删除/恢复统一回此消息)
+message cli_role_list_res
+{
+  error_code             err_code    = 1;  // 错误码
+  uint32                 op_code     = 2;  // 操作类型 (1查询 2创建 3删除 4恢复)
+  repeated cli_role_info role_list   = 3;  // 角色列表
+  uint32                 forbid_edit = 4;  // 禁止编辑标记
+  repeated uint32        line_list   = 5;  // 分线列表
+}
+
+// 角色登录请求 (C→S)
+message cli_role_login_req
+{
+  uint64 session_id = 1;  // 会话ID
+  uint64 role_id    = 2;  // 角色ID
+  uint32 op_code    = 3;  // 操作类型 (0=正常 1=断线重连)
+  uint64 line_idx   = 4;  // 分线索引 (0=不分线)
+}
+
+// 角色登录回复 (S→C)
+message cli_role_login_res
+{
+  error_code err_code = 1;  // 错误码
+  uint64     role_id  = 2;  // 角色ID
+  uint32     op_code  = 3;  // 操作类型 (0=正常 1=断线重连)
+}
+
+// 进入游戏请求 (C→S)
+message cli_enter_game_req
+{
+}
+
+// 进入游戏回复 (S→C)
+message cli_enter_game_res
+{
+  error_code err_code = 1;  // 错误码
+}
+
+// 全局配置数据通知 (S→C, 进图后主动推送)
+message cli_global_config_ntf
+{
+}
+
+// 心跳请求 (C→S)
+message cli_heart_beat_req
+{
+}
+
+// 心跳回复 (S→C)
+message cli_heart_beat_res
+{
+  error_code err_code   = 1;  // 错误码
+  uint64     server_time = 2;  // 服务端时间戳 (用于客户端时钟同步)
+}
+
+// 重连请求 (C→S)
+message cli_reconnect_req
+{
+  uint64 session_id = 1;  // 会话ID
+}
+
+// 重连回复 (S→C)
+message cli_reconnect_res
+{
+  uint64     session_id = 1;  // 会话ID
+  error_code err_code   = 2;  // 错误码
+}
+
+// 随机名请求 (C→S)
+message cli_random_name_req
+{
+  uint32 sex = 1;  // 性别
+}
+
+// 随机名回复 (S→C)
+message cli_random_name_res
+{
+  string     random_name = 1;  // 随机名
+  error_code err_code    = 2;  // 错误码
+}
+
+// 踢人通知 (S→C)
+message cli_kickoff_player_ntf
+{
+  uint64 role_id = 1;  // 角色ID
+  uint32 code_id = 2;  // 踢人原因 (1=服务器踢人 2=顶号 3=顶角色)
+  string reason  = 3;  // 踢人原因描述
+}
+

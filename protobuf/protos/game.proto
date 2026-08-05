@@ -1,0 +1,27 @@
+// 框架级基础协议 (握手测试 / Ping-Pong, 非业务协议)
+syntax = "proto3";
+// (no package — all messages in global namespace)
+
+// 框架握手请求 (测试用)
+message cli_handshake_test_req
+{
+  string client_version = 1;  // 客户端版本号
+}
+
+// 框架握手回复 (测试用)
+message cli_handshake_test_res
+{
+  string server_version = 1;  // 服务端版本号
+}
+
+// Ping 请求 (连接保活测试)
+message ping_req
+{
+  string id = 1;  // Ping 标识
+}
+
+// Pong 回复 (连接保活测试)
+message pong_res
+{
+  string id = 1;  // Pong 标识 (回传 Ping 的 id)
+}

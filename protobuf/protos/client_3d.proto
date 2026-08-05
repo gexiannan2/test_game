@@ -1,0 +1,144 @@
+// ============================================================
+// 场景协议 (3D 游戏核心)
+//
+// 命名约定:
+//   _req      客户端 → 服务端请求
+//   _res      服务端 → 客户端响应 (点对点, 仅回复请求者)
+//   _ntf      服务端 → 客户端推送
+//   _data     嵌套数据载荷 (req/res/ntf 共用)
+//
+// ntf 分类:
+//   [AOI]     cli_3d_aoi_*_ntf   — AOI 广播 (视野内所有玩家)
+//   [DIRECT]  cli_3d_*_ntf       — 单播通知 (仅目标玩家)
+// ============================================================
+
+syntax = "proto3";
+
+import "client_common.proto";
+
+// ============================================================
+// [REQ/RES] 移动
+// ============================================================
+
+// 移动请求 (C→S)
+message cli_3d_move_req {
+    entity_move_data move      = 1;
+    int32            move_flag = 2;
+}
+
+// 移动响应 (S→C, 点对点)
+message cli_3d_move_res {
+    uint64           entity_id = 1;
+    error_code       err_code  = 2;
+    entity_move_data move      = 3;
+}
+
+// ============================================================
+// [REQ/RES] 跳跃 (起跳/空中转向/落地)
+// ============================================================
+
+// 跳跃请求 (C→S)
+message cli_3d_jump_req {
+    entity_jump_data jump = 1;
+}
+
+// 跳跃响应 (S→C, 点对点)
+message cli_3d_jump_res {
+    uint64            entity_id = 1;
+    error_code        err_code  = 2;
+    entity_jump_data  jump      = 3;
+}
+
+// ============================================================
+// [REQ/RES] 闪避翻滚
+// ============================================================
+
+// 闪避请求 (C→S)
+message cli_3d_dodge_req {
+    entity_dodge_data dodge = 1;
+}
+
+// 闪避响应 (S→C, 点对点)
+message cli_3d_dodge_res {
+    uint64             entity_id = 1;
+    error_code         err_code  = 2;
+    entity_dodge_data  dodge     = 3;
+}
+
+// ============================================================
+// [AOI NTF] 视野内广播 (S→C, 发给所有 watcher)
+// entity_3d.entity_data_list 按 entity_data_type 区分载荷:
+//   PLAYER_DATA → entity_player_data   (进入视野, appears_ntf)
+//   MOVE_DATA   → entity_move_data     (移动同步, update_ntf)
+//   JUMP_DATA   → entity_jump_data     (跳跃/转向, update_ntf)
+//   DODGE_DATA  → entity_dodge_data    (闪避, update_ntf)
+//   SKILL_DATA  → entity_skill_data    (技能/攻击, update_ntf)
+// ============================================================
+
+// AOI 实体出现 [AOI 广播]
+message cli_3d_aoi_appears_ntf {
+    repeated entity_3d list = 1;
+}
+
+// AOI 实体状态更新 [AOI 广播]
+message cli_3d_aoi_update_ntf {
+    repeated entity_3d list = 1;
+}
+
+// AOI 实体消失 [AOI 广播]
+message cli_3d_aoi_disappears_ntf {
+    repeated uint64 entity_id_list = 1;
+}
+
+// AOI 属性变更 [AOI 广播]
+message cli_3d_aoi_attr_update_ntf {
+    uint64            entity_id    = 1;
+    map<int32, int64> attr_changes = 2;
+    uint32            state_flag   = 3;
+}
+
+// AOI 动画播放 [AOI 广播]
+message cli_3d_aoi_animation_ntf {
+    uint64 entity_id    = 1;
+    uint32 animation_id = 2;
+    float  speed        = 3;
+    bool   loop         = 4;
+    uint64 client_time  = 5;
+}
+
+// ============================================================
+// [DIRECT NTF] 进出地图 (S→C, 仅发给目标玩家)
+// enter_map_ntf: 通知客户端加载场景、出生点等
+// leave_map_ntf: 通知客户端卸载场景
+// 进出视野的 AOI 广播走 aoi_appears_ntf / aoi_disappears_ntf
+// ============================================================
+
+// 进入地图 [单播, 非 AOI]
+message cli_3d_enter_map_ntf {
+    uint64      cfg_id         = 1;
+    uint64      map_id         = 2;
+    string      source_id      = 3;
+    uint64      role_entity_id = 4;
+    vec3        pos            = 5;
+    quat        rot            = 6;
+    error_code  err_code       = 7;
+}
+
+// 离开地图请求 (C→S)
+message cli_3d_leave_map_req {
+    uint64 map_id  = 1;
+    uint32 op_code = 2;
+}
+
+// 离开地图响应 (S→C, 点对点)
+message cli_3d_leave_map_res {
+    uint64     map_id   = 1;
+    error_code err_code = 2;
+}
+
+// 离开地图 [单播, 非 AOI]
+message cli_3d_leave_map_ntf {
+    uint64     map_id   = 1;
+    uint32     op_code  = 2;
+    error_code err_code = 3;
+}

@@ -1,0 +1,31 @@
+// 战斗协议 (技能释放 / 命中结算)
+// 普攻也是技能的一种, 客户端和服务器双端读本地 JSON 配置跑 3D 骨骼武器变换
+syntax = "proto3";
+
+import "client_common.proto";
+
+// 技能释放请求 (C→S, 复用 entity_skill_data)
+message cli_3d_skill_req {
+    entity_skill_data skill = 1;
+}
+
+// 技能释放回复 (S→C)
+message cli_3d_skill_res {
+    uint64     entity_id    = 1;
+    uint32     skill_cfg_id = 2;
+    uint32     combo_index  = 3;
+    error_code err_code     = 4;
+}
+
+// 命中结算通知 (S→C, 广播给攻击者和被击者视野内所有玩家)
+message cli_3d_hit_ntf {
+    uint64                       attacker_entity_id  = 1;
+    uint64                       target_entity_id    = 2;
+    uint32                       skill_cfg_id        = 3;
+    uint32                       combo_index         = 4;
+    int32                        damage              = 5;
+    uint32                       hit_state_flag      = 6;
+    bool                         is_critical         = 7;
+    bool                         target_dead         = 8;
+    map<int32, int64>            target_attr_changes = 9;
+}

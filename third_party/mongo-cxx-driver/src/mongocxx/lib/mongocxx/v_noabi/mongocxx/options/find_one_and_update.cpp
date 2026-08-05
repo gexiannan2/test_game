@@ -1,0 +1,72 @@
+// Copyright 2009-present MongoDB, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <mongocxx/options/find_one_and_update.hpp>
+
+//
+
+#include <mongocxx/v1/find_one_and_update_options.hh>
+
+#include <utility>
+
+#include <bsoncxx/array/value.hpp>
+#include <bsoncxx/document/value.hpp>
+
+namespace mongocxx {
+namespace v_noabi {
+namespace options {
+
+find_one_and_update::find_one_and_update(v1::find_one_and_update_options opts)
+    : _bypass_document_validation{opts.bypass_document_validation()},
+      _collation{[&]() -> decltype(_collation) {
+          if (auto& opt = v1::find_one_and_update_options::internal::collation(opts)) {
+              return bsoncxx::v_noabi::from_v1(std::move(*opt));
+          }
+          return {};
+      }()},
+      _hint{std::move(v1::find_one_and_update_options::internal::hint(opts))},
+      _let{[&]() -> decltype(_let) {
+          if (auto& opt = v1::find_one_and_update_options::internal::let(opts)) {
+              return bsoncxx::v_noabi::from_v1(std::move(*opt));
+          }
+          return {};
+      }()},
+      _comment{std::move(v1::find_one_and_update_options::internal::comment(opts))},
+      _max_time{opts.max_time()},
+      _projection{[&]() -> decltype(_projection) {
+          if (auto& opt = v1::find_one_and_update_options::internal::projection(opts)) {
+              return bsoncxx::v_noabi::from_v1(std::move(*opt));
+          }
+          return {};
+      }()},
+      _return_document{opts.return_document()},
+      _ordering{[&]() -> decltype(_ordering) {
+          if (auto& opt = v1::find_one_and_update_options::internal::sort(opts)) {
+              return bsoncxx::v_noabi::from_v1(std::move(*opt));
+          }
+          return {};
+      }()},
+      _upsert{opts.upsert()},
+      _read_concern{std::move(v1::find_one_and_update_options::internal::read_concern(opts))},
+      _write_concern{std::move(v1::find_one_and_update_options::internal::write_concern(opts))},
+      _array_filters{[&]() -> decltype(_array_filters) {
+          if (auto& opt = v1::find_one_and_update_options::internal::array_filters(opts)) {
+              return bsoncxx::v_noabi::from_v1(std::move(*opt));
+          }
+          return {};
+      }()} {}
+
+} // namespace options
+} // namespace v_noabi
+} // namespace mongocxx

@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package mapserver;
+
+option cc_generic_services = true;
+
+message Vec3 {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message Quat {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+  float w = 4;
+}
+
+message EntityState {
+  uint64 id = 1;
+  Vec3 position = 2;
+  Quat rotation = 3;
+  Vec3 linear_velocity = 4;
+  Vec3 angular_velocity = 5;
+}
+
+message WorldSnapshot {
+  uint64 tick = 1;
+  repeated EntityState entities = 2;
+}
+
+message CreateEntityRequest {
+  uint64 id = 1;
+  Vec3 position = 2;
+  float radius = 3;
+}
+
+message CreateEntityResponse {
+  bool ok = 1;
+  string message = 2;
+}
+
+message ApplyImpulseRequest {
+  uint64 entity_id = 1;
+  Vec3 impulse = 2;
+}
+
+message ApplyImpulseResponse {
+  bool ok = 1;
+  string message = 2;
+}
+
+message StepRequest {
+  float delta_time = 1;
+  uint32 collision_steps = 2;
+}
+
+message StepResponse {
+  WorldSnapshot snapshot = 1;
+}
+
+message GetSnapshotRequest {}
+
+message ValidateRequest {
+  WorldSnapshot client_snapshot = 1;
+  float tolerance = 2;
+}
+
+message ValidateResponse {
+  bool match = 1;
+  WorldSnapshot server_snapshot = 2;
+  string diff = 3;
+}
+
+service MapService {
+  rpc CreateEntity(CreateEntityRequest) returns (CreateEntityResponse);
+  rpc ApplyImpulse(ApplyImpulseRequest) returns (ApplyImpulseResponse);
+  rpc Step(StepRequest) returns (StepResponse);
+  rpc GetSnapshot(GetSnapshotRequest) returns (StepResponse);
+  rpc Validate(ValidateRequest) returns (ValidateResponse);
+}
