@@ -6,10 +6,12 @@
 
 #include "google/protobuf/util/json_util.h"
 
+#include <bit>
 #include <chrono>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace mongo
@@ -18,6 +20,40 @@ namespace mongo
         using bsoncxx::builder::basic::document;
         using bsoncxx::builder::basic::kvp;
         using bsoncxx::builder::basic::make_document;
+
+        constexpr std::string_view kAccountInfoCollection = "account_info";
+
+        bool IsUtf8Continuation(const unsigned char byte) noexcept
+        {
+            return byte >= 0x80U && byte <= 0xBFU;
+        }
+
+        // account_info 只在首次插入时初始化，登录不能覆盖充值或密码等已有数据。
+        void UpsertAccountInfo(MongoClient& client,
+                               const AccountInfoSnapshot& snapshot,
+                               const std::string& documentId)
+        {
+            document filter;
+            filter.append(kvp("_id", documentId));
+
+            document fields;
+            fields.append(
+                kvp("account_id", static_cast<std::int64_t>(snapshot.accountId)),
+                kvp("channel_id", static_cast<std::int64_t>(snapshot.channelId)),
+                kvp("account", snapshot.account),
+                kvp("passwd", snapshot.passwd),
+                kvp("charge", static_cast<std::int64_t>(snapshot.charge)),
+                kvp("area_id", static_cast<std::int64_t>(snapshot.areaId)));
+            document update;
+            update.append(kvp("$setOnInsert", fields.extract()));
+
+            const auto result = client.UpdateOne(
+                kAccountInfoCollection, filter.view(), update.view(), true);
+            if (result.matchedCount != 1 && !result.upserted)
+            {
+                throw std::runtime_error("account_info 没有匹配或写入文档");
+            }
+        }
 
         // 把 entity_player_data 整体 MessageToJsonString 为明文 JSON 存入 mongo data 字段：
         //   _id           = base.id（玩家 role_id）
@@ -96,6 +132,104 @@ namespace mongo
 
     } // namespace
 
+    bool IsValidAccountInfoAccount(const std::string_view account) noexcept
+    {
+        if (account.empty())
+        {
+            return false;
+        }
+
+        std::size_t offset = 0;
+        std::size_t characterCount = 0;
+        while (offset < account.size())
+        {
+            const auto first = static_cast<unsigned char>(account[offset]);
+            std::size_t length = 0;
+            if (first <= 0x7FU)
+            {
+                length = 1;
+            }
+            else if (first >= 0xC2U && first <= 0xDFU)
+            {
+                length = 2;
+            }
+            else if (first >= 0xE0U && first <= 0xEFU)
+            {
+                length = 3;
+            }
+            else if (first >= 0xF0U && first <= 0xF4U)
+            {
+                length = 4;
+            }
+            else
+            {
+                return false;
+            }
+
+            if (length > account.size() - offset)
+            {
+                return false;
+            }
+            for (std::size_t index = 1; index < length; ++index)
+            {
+                if (!IsUtf8Continuation(static_cast<unsigned char>(account[offset + index])))
+                {
+                    return false;
+                }
+            }
+
+            if (length == 3)
+            {
+                const auto second = static_cast<unsigned char>(account[offset + 1]);
+                if ((first == 0xE0U && second < 0xA0U) ||
+                    (first == 0xEDU && second > 0x9FU))
+                {
+                    return false;  // 拒绝过长编码和 UTF-16 代理项。
+                }
+            }
+            else if (length == 4)
+            {
+                const auto second = static_cast<unsigned char>(account[offset + 1]);
+                if ((first == 0xF0U && second < 0x90U) ||
+                    (first == 0xF4U && second > 0x8FU))
+                {
+                    return false;  // Unicode 码点必须位于 U+0000～U+10FFFF。
+                }
+            }
+
+            offset += length;
+            ++characterCount;
+            if (characterCount > 20)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    std::string MakeAccountInfoDocumentId(
+        const std::uint32_t channelId,
+        const std::int64_t areaId,
+        const std::string_view account)
+    {
+        return std::to_string(channelId) + ":" + std::to_string(areaId) + ":" +
+               std::string(account);
+    }
+
+    std::int64_t MakeAccountInfoRouteKey(const std::string_view documentId) noexcept
+    {
+        constexpr std::uint64_t offsetBasis = 14695981039346656037ULL;
+        constexpr std::uint64_t prime = 1099511628211ULL;
+
+        std::uint64_t hash = offsetBasis;
+        for (const char value : documentId)
+        {
+            hash ^= static_cast<unsigned char>(value);
+            hash *= prime;
+        }
+        return std::bit_cast<std::int64_t>(hash);
+    }
+
     PlayerMongoStorage::PlayerMongoStorage(
         MongoConfig config,
         PlayerMongoStorageOptions options,
@@ -140,6 +274,58 @@ namespace mongo
         {
             // 入队失败也必须回调，避免调用方永久挂起
             completion(false, playerId, nullptr);
+        }
+        return posted;
+    }
+
+    bool PlayerMongoStorage::PostUpsertAccountInfo(
+        AccountInfoSnapshot snapshot,
+        AccountInfoCompletionHandler completion)
+    {
+        if (!IsValidAccountInfoAccount(snapshot.account))
+        {
+            const std::string documentId;
+            if (completion)
+            {
+                completion(
+                    false,
+                    documentId,
+                    std::make_exception_ptr(std::invalid_argument(
+                        "account_info 账号必须是 1～20 个合法 UTF-8 字符")));
+            }
+            return false;
+        }
+
+        std::string documentId = MakeAccountInfoDocumentId(
+            snapshot.channelId, snapshot.areaId, snapshot.account);
+        const std::int64_t routeKey = MakeAccountInfoRouteKey(documentId);
+        const bool posted = dispatcher_.Post(
+            routeKey,
+            [snapshot = std::move(snapshot), documentId, completion](MongoClient& client)
+            {
+                try
+                {
+                    UpsertAccountInfo(client, snapshot, documentId);
+                    if (completion)
+                    {
+                        completion(true, documentId, nullptr);
+                    }
+                }
+                catch (...)
+                {
+                    if (completion)
+                    {
+                        completion(false, documentId, std::current_exception());
+                    }
+                    else
+                    {
+                        throw;  // 无回调时重新抛，走统一 ErrorHandler。
+                    }
+                }
+            });
+        if (!posted && completion)
+        {
+            completion(false, std::move(documentId), nullptr);
         }
         return posted;
     }

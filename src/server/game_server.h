@@ -131,6 +131,9 @@ class GameServer : public std::enable_shared_from_this<GameServer>
             return player_storage_.get();
         }
 
+        // 账号登录成功后异步幂等写入 account_info；失败不影响登录结果。
+        void PostAccountInfoAfterLogin(const EntityPtr& entity);
+
         // 查询玩家存档（QueryRole）：异步从 mongo 加载，回调在业务线程。
         // success=true 表示查到存档；data 为存档（无存档时默认构造）。
         void QueryRole(uint64_t roleId, std::function<void(bool, ::entity_player_data)> cb);

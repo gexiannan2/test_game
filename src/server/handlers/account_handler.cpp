@@ -48,7 +48,6 @@ void AccountHandler::Handle(const ::zrpc::TcpConnectionPtr& conn,
     return;
   }
   LOG_INFO << "[REQ] cli_user_login_req uid=" << req_ptr->uid()
-           << " token=" << req_ptr->token()
            << " channel_id=" << req_ptr->channel_id();
 
   if (req_ptr->uid().empty()) {
@@ -83,6 +82,7 @@ void AccountHandler::Handle(const ::zrpc::TcpConnectionPtr& conn,
     uint64_t session_id = System::OnUserLogin(
         existing, req_ptr->uid(), req_ptr->token(), req_ptr->channel_id(),
         server_->GenSessionId());
+    server_->PostAccountInfoAfterLogin(existing);
 
     PlayerEntitySystem::Instance().CleanupEntity(entity);
     conn->SetContext(existing);
@@ -105,6 +105,7 @@ void AccountHandler::Handle(const ::zrpc::TcpConnectionPtr& conn,
   uint64_t session_id = System::OnUserLogin(
       entity, req_ptr->uid(), req_ptr->token(), req_ptr->channel_id(),
       server_->GenSessionId());
+  server_->PostAccountInfoAfterLogin(entity);
 
   LOG_INFO << "[RES] cli_user_login_res err_code=0 session_id=" << session_id
            << " gate_addr=\"" << server_->GateAddr() << "\"";

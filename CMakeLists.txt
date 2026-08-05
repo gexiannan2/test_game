@@ -207,6 +207,19 @@ set_target_properties(svc_game_3d_server PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_server PRIVATE -fpermissive -w -march=native)
 
+# account_info 纯函数测试；MONGO_ACCOUNT_INFO_TEST=1 时额外执行真实 Mongo 回读。
+add_executable(svc_game_3d_account_info_test
+    "${SRC_DIR}/server/mongo/tests/AccountInfoStorageTest.cpp"
+    $<TARGET_OBJECTS:game_proto>
+)
+target_include_directories(svc_game_3d_account_info_test PRIVATE ${INC_DIRS})
+target_link_directories(svc_game_3d_account_info_test PRIVATE ${PROTOBUF_LINK_DIRS})
+target_link_libraries(svc_game_3d_account_info_test PRIVATE mongo ${PROTOBUF_LIB} pthread)
+add_dependencies(svc_game_3d_account_info_test gen_proto_lookup)
+set_target_properties(svc_game_3d_account_info_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
+target_compile_options(svc_game_3d_account_info_test PRIVATE -fpermissive -w)
+
 # ============================================================================
 # 4b. svc_game_3d_test — 单机测试（AOI/Map，不走网络）
 # ============================================================================

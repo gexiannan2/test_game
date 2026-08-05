@@ -14,6 +14,7 @@
 #include "client_login.pb.h"
 #include "common/init.h"
 #include "ecs/component_base/component_base.h"
+#include "ecs/components/account_component.h"
 #include "ecs/components/connection_component.h"
 #include "ecs/components/map_component.h"
 #include "ecs/components/role_component.h"
@@ -36,6 +37,7 @@
 #include <exception>
 
 #include "MongoConfig.h"
+#include "MongoError.h"
 #include "PlayerMongoStorage.h"
 #include "ecs/systems/player_persist_system.h"
 
@@ -514,6 +516,93 @@ void GameServer::Stop()
 void GameServer::RunInLoop(std::function<void()> fn)
 {
     loop_.RunInLoop(std::move(fn));
+}
+
+void GameServer::PostAccountInfoAfterLogin(const EntityPtr& entity)
+{
+    if (!player_storage_ || !entity)
+    {
+        return;
+    }
+
+    const auto* account = entity->GetComponent<AccountComponent>();
+    if (!account)
+    {
+        LOG_WARN << "account_info skipped: no AccountComponent, entity="
+                 << entity->GetId();
+        return;
+    }
+    try
+    {
+        if (!mongo::IsValidAccountInfoAccount(account->uid_))
+        {
+            LOG_WARN << "account_info skipped: account must be valid UTF-8 with 1-20 characters"
+                     << " account_bytes=" << account->uid_.size()
+                     << " channel_id=" << account->channel_id_;
+            return;
+        }
+
+        mongo::AccountInfoSnapshot snapshot;
+        snapshot.account = account->uid_;
+        snapshot.channelId = account->channel_id_;
+        const auto accountBytes = snapshot.account.size();
+        const auto channelId = snapshot.channelId;
+
+        player_storage_->PostUpsertAccountInfo(
+            std::move(snapshot),
+            [accountBytes, channelId](bool success, std::string, std::exception_ptr ep)
+            {
+                if (success)
+                {
+                    return;
+                }
+                if (!ep)
+                {
+                    LOG_WARN << "account_info upsert rejected: queue full or stopping"
+                             << " account_bytes=" << accountBytes
+                             << " channel_id=" << channelId
+                             << " area_id=0";
+                    return;
+                }
+                try
+                {
+                    std::rethrow_exception(ep);
+                }
+                catch (const mongo::MongoError& error)
+                {
+                    LOG_WARN << "account_info upsert failed"
+                             << " account_bytes=" << accountBytes
+                             << " channel_id=" << channelId
+                             << " area_id=0"
+                             << " op=" << error.operation()
+                             << " code=" << error.code()
+                             << " what=" << error.what();
+                }
+                catch (const std::exception& error)
+                {
+                    LOG_WARN << "account_info upsert failed"
+                             << " account_bytes=" << accountBytes
+                             << " channel_id=" << channelId
+                             << " area_id=0"
+                             << " what=" << error.what();
+                }
+            });
+    }
+    catch (const std::exception& error)
+    {
+        LOG_WARN << "account_info submit failed before enqueue"
+                 << " account_bytes=" << account->uid_.size()
+                 << " channel_id=" << account->channel_id_
+                 << " area_id=0"
+                 << " what=" << error.what();
+    }
+    catch (...)
+    {
+        LOG_WARN << "account_info submit failed before enqueue"
+                 << " account_bytes=" << account->uid_.size()
+                 << " channel_id=" << account->channel_id_
+                 << " area_id=0 unknown_error";
+    }
 }
 
 void GameServer::QueryRole(uint64_t roleId, std::function<void(bool, ::entity_player_data)> cb)
