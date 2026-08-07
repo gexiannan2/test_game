@@ -21,6 +21,7 @@ using NavMeshHandle = KBEngine::NavMeshHandle;
 
 struct NavPosition
 {
+    // Server/world convention: X/Z are horizontal axes and Y is vertical.
     float x = 0.0f;
     float y = 0.0f;
     float z = 0.0f;
@@ -203,6 +204,8 @@ class HeightMapSystem;
 class NavSystem final
 {
 public:
+    // Tick-thread service: all methods on one instance must be called from the
+    // same game thread. Sliced queries may span ticks, but must not change thread.
     NavSystem();
     ~NavSystem();
 
@@ -312,6 +315,7 @@ private:
 class HeightMapSystem final
 {
 public:
+    // Load and query on the same game thread. Runtime queries are synchronous.
     HeightMapSystem();
     ~HeightMapSystem();
 
