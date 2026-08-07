@@ -22,14 +22,14 @@ namespace client_login
         msg_reg_normal(cli_reconnect_req);
         msg_reg_normal(cli_random_name_req);
         msg_reg_normal(cli_kickoff_player_ntf);
+        msg_reg_normal(cli_role_list_res);
         msg_reg_normal(cli_reconnect_res);
+        msg_reg_normal(cli_role_login_res);
         msg_reg_normal(cli_heart_beat_res);
         msg_reg_normal(cli_random_name_res);
-        msg_reg_normal(cli_role_login_res);
         msg_reg_normal(cli_handshake_res);
-        msg_reg_normal(cli_user_login_res);
         msg_reg_normal(cli_enter_game_res);
-        msg_reg_normal(cli_role_list_res);
+        msg_reg_normal(cli_user_login_res);
 
         return 0;
     }

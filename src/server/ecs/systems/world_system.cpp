@@ -27,27 +27,31 @@ void WorldSystem::Init() {
     map_->Init();
     aoi_.BindMapWorld(map_.get());
     aoi_.BindWorld(this);
+    monster_ai_system_.Bind(this);
     full_move_system_.Bind(this, map_.get());
     initialized_ = true;
 }
 
 void WorldSystem::Tick(float dt) {
     // 统一 30Hz 步进，避免多 timer 竞态
-    // 1. AI/NPC 移动逻辑（写 TransformComponent）
+    // 1. 怪物行为树低频决策（下发 MoveSystem 指令）
+    monster_ai_system_.Tick(dt);
+
+    // 2. NPC 移动逻辑（写 TransformComponent）
     full_move_system_.Tick(dt);
 
-    // 2. Jolt 物理：同步所有 body 到 TransformComponent 最新位置
+    // 3. Jolt 物理：同步所有 body 到 TransformComponent 最新位置
     jolt_system_.SyncAllBodies(dt);
 
-    // 3. Jolt 物理步进
+    // 4. Jolt 物理步进
     if (jolt_server_) {
         jolt_server_->Update(dt, 1);
     }
 
-    // 4. 清零运动学体速度（防止跨帧漂移）
+    // 5. 清零运动学体速度（防止跨帧漂移）
     jolt_system_.PostUpdate();
 
-    // 5. AOI 脏数据广播
+    // 6. AOI 脏数据广播
     aoi_.FlushDirty();
 }
 
@@ -104,24 +108,27 @@ void WorldSystem::EnterMap(const EntityPtr& entity) {
 void WorldSystem::LeaveMap(const EntityPtr& entity) {
     if (!entity || !map_ || !initialized_ || !entity->IsInMap()) return;
 
-    // 1. 移动系统收尾
+    // 1. 先停止并销毁行为树，防止离图后继续下发动作
+    monster_ai_system_.DetachMonster(entity->GetId());
+
+    // 2. 移动系统收尾
     full_move_system_.CancelMove(entity, MoveStopReason::kStopCommand);
 
-    // 2. AOI: 广播自身消失 → 移除视野
+    // 3. AOI: 广播自身消失 → 移除视野
     aoi_.OnEntityLeaveMap(entity);
     if (aoi_.HasWatcher(entity->GetId())) {
         aoi_.RemoveWatcher(entity->GetId(), entity->GetPosition(), false);
     }
 
-    // 3. Jolt 物理：删除胶囊体
+    // 4. Jolt 物理：删除胶囊体
     jolt_system_.OnEntityLeaveMap(entity);
 
-    // 4. entity 状态
+    // 5. entity 状态
     entity->SetInMap(false);
     entity->SetWorld(nullptr);
     entity->ClearPropertyTypes();
 
-    // 5. 地图足迹 + 业务回调（leave_map_ntf 等）
+    // 6. 地图足迹 + 业务回调（leave_map_ntf 等）
     map_->OnEntityLeaveMap(entity);
     UnregisterEntity(entity->GetId());
     map_->NotifyLeaveMap(entity);

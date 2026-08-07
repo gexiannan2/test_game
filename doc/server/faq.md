@@ -6,7 +6,7 @@
 |------|----------|------|
 | 进图看不到周围人 | AddWatcher 失败 / 不在同 AOI 格 / Bridge SendFn 找不到 conn | 查 `NeedsAoiWatcher`、距离是否 >10m、`FindEntity` |
 | 周围看不到我 | OnSubjectEnterMap 未走 / LeaveMap 过早 | 查 `IsInMap`、日志 EnterMap |
-| 有自己没别人 | 只发了 Handler 自身 appear，AddWatcher 异常 | 断点 `AddReceiver` |
+| 有自己没别人 | `AddWatcher` / `NotifyAppearToReceiver` 异常 | 断点 `AddReceiver`、`MonitorEntity` |
 | 移动后别人位置不更新 | 同格不广播（设计如此）；或 MoveEntity/OnMove 顺序反了 | 确认先 MoveEntity；跨格才 disappear/appear |
 | 重连后不能动 | EnterMap 被 IsInMap 短路；或 stale disconnect 误 Leave | 查重连先 Leave 再 Enter；conn 归属 |
 | 重登后被踢出图 | 旧 disconnect 误清理 | 须 SetContext{} + OnConnection stale 判断 |

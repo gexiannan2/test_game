@@ -30,6 +30,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ---------- 第三方依赖 ----------
+# BehaviorTree.CPP 完整源码固定在 third_party，FetchContent 只挂载本地源码。
+include("${CMAKE_SOURCE_DIR}/cmake/dependencies/BehaviorTreeCpp.cmake")
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
@@ -66,14 +70,14 @@ set(INC_DIRS
     "${SRC_DIR}"
     "${SRC_DIR}/protocol"
     "${SRC_DIR}/common"
-    "${SRC_DIR}/server"
-    "${SRC_DIR}/server/ecs"
-    "${SRC_DIR}/server/ecs/component"
-    "${SRC_DIR}/server/ecs/component_base"
-    "${SRC_DIR}/server/ecs/components"
-    "${SRC_DIR}/server/ecs/entity"
-    "${SRC_DIR}/server/handlers"
-    "${SRC_DIR}/server/session"
+    "${SRC_DIR}/gameserver"
+    "${SRC_DIR}/gameserver/ecs"
+    "${SRC_DIR}/gameserver/ecs/component"
+    "${SRC_DIR}/gameserver/ecs/component_base"
+    "${SRC_DIR}/gameserver/ecs/components"
+    "${SRC_DIR}/gameserver/ecs/entity"
+    "${SRC_DIR}/gameserver/handlers"
+    "${SRC_DIR}/gameserver/session"
     "${CMAKE_SOURCE_DIR}/third_party"
     "${JOLT_DIR}/include"
     "${PROTO_GEN_DIR}"
@@ -81,11 +85,14 @@ set(INC_DIRS
     "${PROTOBUF_ROOT}/include"
 )
 
+# ---------- 怪物行为树 AI ----------
+add_subdirectory("${SRC_DIR}/gameserver/ai")
+
 # ---------- Mongo 玩家异步落地（源码静态编入，必选） ----------
 set(MONGO_BUILD_TESTS OFF CACHE BOOL "由游戏服构建时关闭 mongo 模块自测" FORCE)
-add_subdirectory("${SRC_DIR}/server/mongo")
-list(APPEND INC_DIRS "${SRC_DIR}/server/mongo/include")
-message(STATUS ">>> mongo player async storage enabled (src/server/mongo)")
+add_subdirectory("${SRC_DIR}/mongo")
+list(APPEND INC_DIRS "${SRC_DIR}/mongo/include")
+message(STATUS ">>> mongo player async storage enabled (src/mongo)")
 
 # ---------- protobuf 库 ----------
 set(PROTOBUF_LIB "protobufd")
@@ -170,94 +177,95 @@ target_compile_options(game_proto PRIVATE -w -fpermissive)
 # 4. svc_game_3d_server
 # ============================================================================
 add_executable(svc_game_3d_server
-    "${SRC_DIR}/server/main.cc"
-    "${SRC_DIR}/server/game_server.cpp"
-    "${SRC_DIR}/server/jolt_server.cpp"
-    "${SRC_DIR}/server/ecs/entity/entity.cpp"
-    "${SRC_DIR}/server/ecs/entity/player_entity.cpp"
-    "${SRC_DIR}/server/handlers/connection_handler.cpp"
-    "${SRC_DIR}/server/handlers/account_handler.cpp"
-    "${SRC_DIR}/server/handlers/role_handler.cpp"
-    "${SRC_DIR}/server/handlers/game_handler.cpp"
-    "${SRC_DIR}/server/handlers/move_handler.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_grid.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_view_bridge.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_sector.cpp"
-    "${SRC_DIR}/server/ecs/systems/world_system.cpp"
-    "${SRC_DIR}/server/session/connection_system.cpp"
-    "${SRC_DIR}/server/session/account_system.cpp"
-    "${SRC_DIR}/server/session/role_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_config_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_entity_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/move_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/jolt_system.cpp"
-    "${SRC_DIR}/server/ecs/components/move_component.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_persist_system.cpp"
+    "${SRC_DIR}/gameserver/main.cc"
+    "${SRC_DIR}/gameserver/game_server.cpp"
+    "${SRC_DIR}/gameserver/game_server_init.cpp"
+    "${SRC_DIR}/gameserver/game_server_conn.cpp"
+    "${SRC_DIR}/gameserver/session/session_restore.cpp"
+    "${SRC_DIR}/gameserver/session/random_name_generator.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/archive/player_archive_service.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/handlers/connection_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/account_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/role_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/game_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/move_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/handlers/jump_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/session/connection_system.cpp"
+    "${SRC_DIR}/gameserver/session/account_system.cpp"
+    "${SRC_DIR}/gameserver/session/role_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_config_defaults.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_entity_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_persist_system.cpp"
     $<TARGET_OBJECTS:zrpc>
     $<TARGET_OBJECTS:game_proto>
 )
 target_include_directories(svc_game_3d_server PRIVATE ${INC_DIRS})
 target_link_directories(svc_game_3d_server PRIVATE ${PROTOBUF_LINK_DIRS})
 target_link_libraries(svc_game_3d_server PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_server PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_server gen_proto_lookup)
 target_link_libraries(svc_game_3d_server PRIVATE mongo)
 set_target_properties(svc_game_3d_server PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_server PRIVATE -fpermissive -w -march=native)
 
-# account_info 纯函数测试；MONGO_ACCOUNT_INFO_TEST=1 时额外执行真实 Mongo 回读。
-add_executable(svc_game_3d_account_info_test
-    "${SRC_DIR}/server/mongo/tests/AccountInfoStorageTest.cpp"
-    $<TARGET_OBJECTS:game_proto>
-)
-target_include_directories(svc_game_3d_account_info_test PRIVATE ${INC_DIRS})
-target_link_directories(svc_game_3d_account_info_test PRIVATE ${PROTOBUF_LINK_DIRS})
-target_link_libraries(svc_game_3d_account_info_test PRIVATE mongo ${PROTOBUF_LIB} pthread)
-add_dependencies(svc_game_3d_account_info_test gen_proto_lookup)
-set_target_properties(svc_game_3d_account_info_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
-target_compile_options(svc_game_3d_account_info_test PRIVATE -fpermissive -w)
-
 # ============================================================================
 # 4b. svc_game_3d_test — 单机测试（AOI/Map，不走网络）
 # ============================================================================
 add_executable(svc_game_3d_test
-    "${SRC_DIR}/server/tests/test_main.cc"
-    "${SRC_DIR}/server/tests/aoi_system_test.cc"
-    "${SRC_DIR}/server/tests/aoi_broadcast_test.cc"
-    "${SRC_DIR}/server/tests/aoi_parity_test.cc"
-    "${SRC_DIR}/server/tests/aoi_mass_10k_test.cc"
-    "${SRC_DIR}/server/tests/integration_test.cc"
-    "${SRC_DIR}/server/tests/regression_test.cc"
-    "${SRC_DIR}/server/tests/stress_test.cc"
-    "${SRC_DIR}/server/tests/anomaly_test.cc"
-    "${SRC_DIR}/server/tests/extreme_test.cc"
-    "${SRC_DIR}/server/tests/long_soak_test.cc"
-    "${SRC_DIR}/server/tests/production_test.cc"
-    "${SRC_DIR}/server/tests/production_fullstack_test.cc"
-    "${SRC_DIR}/server/tests/recursive_scan_test.cc"
-    "${SRC_DIR}/server/tests/handler_logic_test.cc"
-    "${SRC_DIR}/server/tests/entity_id_test.cc"
-    "${SRC_DIR}/server/tests/map_system_test.cc"
-    "${SRC_DIR}/server/tests/math_test.cc"
-    "${SRC_DIR}/server/tests/edge_case_test.cc"
-    "${SRC_DIR}/server/tests/login_aoi_churn_test.cc"
-    "${SRC_DIR}/server/ecs/entity/entity.cpp"
-    "${SRC_DIR}/server/ecs/entity/player_entity.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_entity_system.cpp"
-    "${SRC_DIR}/server/session/account_system.cpp"
-    "${SRC_DIR}/server/session/role_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_grid.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_sector.cpp"
-    "${SRC_DIR}/server/ecs/systems/world_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/move_system.cpp"
-    "${SRC_DIR}/server/jolt_server.cpp"
-    "${SRC_DIR}/server/ecs/systems/jolt_system.cpp"
-    "${SRC_DIR}/server/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/tests/test_main.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_system_test.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_appear_disappear_test.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_broadcast_test.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_parity_test.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_mass_10k_test.cc"
+    "${SRC_DIR}/gameserver/tests/integration_test.cc"
+    "${SRC_DIR}/gameserver/tests/regression_test.cc"
+    "${SRC_DIR}/gameserver/tests/stress_test.cc"
+    "${SRC_DIR}/gameserver/tests/anomaly_test.cc"
+    "${SRC_DIR}/gameserver/tests/extreme_test.cc"
+    "${SRC_DIR}/gameserver/tests/long_soak_test.cc"
+    "${SRC_DIR}/gameserver/tests/production_test.cc"
+    "${SRC_DIR}/gameserver/tests/production_fullstack_test.cc"
+    "${SRC_DIR}/gameserver/tests/recursive_scan_test.cc"
+    "${SRC_DIR}/gameserver/tests/handler_logic_test.cc"
+    "${SRC_DIR}/gameserver/tests/entity_id_test.cc"
+    "${SRC_DIR}/gameserver/tests/map_system_test.cc"
+    "${SRC_DIR}/gameserver/tests/math_test.cc"
+    "${SRC_DIR}/gameserver/tests/monster_ai_system_test.cc"
+    "${SRC_DIR}/gameserver/tests/edge_case_test.cc"
+    "${SRC_DIR}/gameserver/tests/login_aoi_churn_test.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_multilevel_test.cc"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_entity_system.cpp"
+    "${SRC_DIR}/gameserver/session/account_system.cpp"
+    "${SRC_DIR}/gameserver/session/role_system.cpp"
+    "${SRC_DIR}/gameserver/session/random_name_generator.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
     $<TARGET_OBJECTS:game_proto>
     $<TARGET_OBJECTS:zrpc>
 )
@@ -266,6 +274,7 @@ set_target_properties(svc_game_3d_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_test PRIVATE -fpermissive -w -march=native)
 target_link_libraries(svc_game_3d_test PRIVATE jolt_physics pthread)
+target_link_libraries(svc_game_3d_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_test gen_proto_lookup)
 target_link_directories(svc_game_3d_test PRIVATE ${PROTOBUF_LINK_DIRS})
 target_link_libraries(svc_game_3d_test PRIVATE ${PROTOBUF_LIB})
@@ -276,20 +285,21 @@ target_link_libraries(svc_game_3d_test PRIVATE ${PROTOBUF_LIB})
 #     捕获桥接替代网络发送，protobuf 解码断言。覆盖进出地图/AOI广播/标脏广播。
 # ============================================================================
 add_executable(svc_game_3d_proto_test
-    "${SRC_DIR}/server/tests/test_main.cc"
-    "${SRC_DIR}/server/tests/aoi_proto_test.cc"
-    "${SRC_DIR}/server/tests/aoi_stress_test.cc"
-    "${SRC_DIR}/server/ecs/entity/entity.cpp"
-    "${SRC_DIR}/server/ecs/entity/player_entity.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_grid.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_sector.cpp"
-    "${SRC_DIR}/server/ecs/systems/world_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/move_system.cpp"
-    "${SRC_DIR}/server/jolt_server.cpp"
-    "${SRC_DIR}/server/ecs/systems/jolt_system.cpp"
-    "${SRC_DIR}/server/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/tests/test_main.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_proto_test.cc"
+    "${SRC_DIR}/gameserver/tests/aoi_stress_test.cc"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
     $<TARGET_OBJECTS:zrpc>
     $<TARGET_OBJECTS:game_proto>
     $<TARGET_OBJECTS:zrpc>
@@ -300,6 +310,7 @@ set_target_properties(svc_game_3d_proto_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_proto_test PRIVATE -fpermissive -w -march=native)
 target_link_libraries(svc_game_3d_proto_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_proto_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_proto_test gen_proto_lookup)
 
 # ============================================================================
@@ -308,30 +319,38 @@ add_dependencies(svc_game_3d_proto_test gen_proto_lookup)
 # ============================================================================
 add_executable(svc_game_3d_protocol_test
     "${SRC_DIR}/client/protocol_test.cc"
-    "${SRC_DIR}/server/game_server.cpp"
-    "${SRC_DIR}/server/jolt_server.cpp"
-    "${SRC_DIR}/server/ecs/entity/entity.cpp"
-    "${SRC_DIR}/server/ecs/entity/player_entity.cpp"
-    "${SRC_DIR}/server/handlers/connection_handler.cpp"
-    "${SRC_DIR}/server/handlers/account_handler.cpp"
-    "${SRC_DIR}/server/handlers/role_handler.cpp"
-    "${SRC_DIR}/server/handlers/game_handler.cpp"
-    "${SRC_DIR}/server/handlers/move_handler.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_grid.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_view_bridge.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_sector.cpp"
-    "${SRC_DIR}/server/ecs/systems/world_system.cpp"
-    "${SRC_DIR}/server/session/connection_system.cpp"
-    "${SRC_DIR}/server/session/account_system.cpp"
-    "${SRC_DIR}/server/session/role_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_config_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_entity_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/move_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/jolt_system.cpp"
-    "${SRC_DIR}/server/ecs/components/move_component.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_persist_system.cpp"
+    "${SRC_DIR}/gameserver/game_server.cpp"
+    "${SRC_DIR}/gameserver/game_server_init.cpp"
+    "${SRC_DIR}/gameserver/game_server_conn.cpp"
+    "${SRC_DIR}/gameserver/session/session_restore.cpp"
+    "${SRC_DIR}/gameserver/session/random_name_generator.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/archive/player_archive_service.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/handlers/connection_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/account_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/role_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/game_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/move_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/handlers/jump_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/session/connection_system.cpp"
+    "${SRC_DIR}/gameserver/session/account_system.cpp"
+    "${SRC_DIR}/gameserver/session/role_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_config_defaults.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_entity_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_persist_system.cpp"
     $<TARGET_OBJECTS:zrpc>
     $<TARGET_OBJECTS:game_proto>
 )
@@ -341,6 +360,7 @@ set_target_properties(svc_game_3d_protocol_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_test PRIVATE -fpermissive -w -march=native)
 target_link_libraries(svc_game_3d_protocol_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_test PRIVATE mongo)
 
@@ -349,30 +369,38 @@ target_link_libraries(svc_game_3d_protocol_test PRIVATE mongo)
 # ============================================================================
 add_executable(svc_game_3d_protocol_regression_test
     "${SRC_DIR}/client/protocol_regression_test.cc"
-    "${SRC_DIR}/server/game_server.cpp"
-    "${SRC_DIR}/server/jolt_server.cpp"
-    "${SRC_DIR}/server/ecs/entity/entity.cpp"
-    "${SRC_DIR}/server/ecs/entity/player_entity.cpp"
-    "${SRC_DIR}/server/handlers/connection_handler.cpp"
-    "${SRC_DIR}/server/handlers/account_handler.cpp"
-    "${SRC_DIR}/server/handlers/role_handler.cpp"
-    "${SRC_DIR}/server/handlers/game_handler.cpp"
-    "${SRC_DIR}/server/handlers/move_handler.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_grid.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_view_bridge.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_sector.cpp"
-    "${SRC_DIR}/server/ecs/systems/world_system.cpp"
-    "${SRC_DIR}/server/session/connection_system.cpp"
-    "${SRC_DIR}/server/session/account_system.cpp"
-    "${SRC_DIR}/server/session/role_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_config_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_entity_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/move_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/jolt_system.cpp"
-    "${SRC_DIR}/server/ecs/components/move_component.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_persist_system.cpp"
+    "${SRC_DIR}/gameserver/game_server.cpp"
+    "${SRC_DIR}/gameserver/game_server_init.cpp"
+    "${SRC_DIR}/gameserver/game_server_conn.cpp"
+    "${SRC_DIR}/gameserver/session/session_restore.cpp"
+    "${SRC_DIR}/gameserver/session/random_name_generator.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/archive/player_archive_service.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/handlers/connection_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/account_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/role_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/game_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/move_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/handlers/jump_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/session/connection_system.cpp"
+    "${SRC_DIR}/gameserver/session/account_system.cpp"
+    "${SRC_DIR}/gameserver/session/role_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_config_defaults.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_entity_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_persist_system.cpp"
     $<TARGET_OBJECTS:zrpc>
     $<TARGET_OBJECTS:game_proto>
 )
@@ -382,38 +410,97 @@ set_target_properties(svc_game_3d_protocol_regression_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_regression_test PRIVATE -fpermissive -w -march=native)
 target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_regression_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE mongo)
+
+# ============================================================================
+# 4e2. svc_game_3d_protocol_locomotion_test — 跳跃/下落/下滑 与 move 隔离
+# ============================================================================
+add_executable(svc_game_3d_protocol_locomotion_test
+    "${SRC_DIR}/client/protocol_locomotion_test.cc"
+    "${SRC_DIR}/gameserver/game_server.cpp"
+    "${SRC_DIR}/gameserver/game_server_init.cpp"
+    "${SRC_DIR}/gameserver/game_server_conn.cpp"
+    "${SRC_DIR}/gameserver/session/session_restore.cpp"
+    "${SRC_DIR}/gameserver/session/random_name_generator.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/archive/player_archive_service.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/handlers/connection_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/account_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/role_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/game_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/move_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/handlers/jump_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/session/connection_system.cpp"
+    "${SRC_DIR}/gameserver/session/account_system.cpp"
+    "${SRC_DIR}/gameserver/session/role_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_config_defaults.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_entity_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_persist_system.cpp"
+    $<TARGET_OBJECTS:zrpc>
+    $<TARGET_OBJECTS:game_proto>
+)
+target_include_directories(svc_game_3d_protocol_locomotion_test PRIVATE ${INC_DIRS})
+target_link_directories(svc_game_3d_protocol_locomotion_test PRIVATE ${PROTOBUF_LINK_DIRS})
+set_target_properties(svc_game_3d_protocol_locomotion_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
+target_compile_options(svc_game_3d_protocol_locomotion_test PRIVATE -fpermissive -w -march=native)
+target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE game_monster_ai)
+add_dependencies(svc_game_3d_protocol_locomotion_test gen_proto_lookup)
+target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE mongo)
 
 # ============================================================================
 # 4f. svc_game_3d_protocol_mass_test — 大规模网络协议 E2E（登录/进离图/脏同步/AOI）
 # ============================================================================
 add_executable(svc_game_3d_protocol_mass_test
     "${SRC_DIR}/client/protocol_mass_test.cc"
-    "${SRC_DIR}/server/game_server.cpp"
-    "${SRC_DIR}/server/jolt_server.cpp"
-    "${SRC_DIR}/server/ecs/entity/entity.cpp"
-    "${SRC_DIR}/server/ecs/entity/player_entity.cpp"
-    "${SRC_DIR}/server/handlers/connection_handler.cpp"
-    "${SRC_DIR}/server/handlers/account_handler.cpp"
-    "${SRC_DIR}/server/handlers/role_handler.cpp"
-    "${SRC_DIR}/server/handlers/game_handler.cpp"
-    "${SRC_DIR}/server/handlers/move_handler.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_grid.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_view_bridge.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/aoi_sector.cpp"
-    "${SRC_DIR}/server/ecs/systems/world_system.cpp"
-    "${SRC_DIR}/server/session/connection_system.cpp"
-    "${SRC_DIR}/server/session/account_system.cpp"
-    "${SRC_DIR}/server/session/role_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/map_config_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_entity_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/move_system.cpp"
-    "${SRC_DIR}/server/ecs/systems/jolt_system.cpp"
-    "${SRC_DIR}/server/ecs/components/move_component.cpp"
-    "${SRC_DIR}/server/ecs/systems/player_persist_system.cpp"
+    "${SRC_DIR}/gameserver/game_server.cpp"
+    "${SRC_DIR}/gameserver/game_server_init.cpp"
+    "${SRC_DIR}/gameserver/game_server_conn.cpp"
+    "${SRC_DIR}/gameserver/session/session_restore.cpp"
+    "${SRC_DIR}/gameserver/session/random_name_generator.cpp"
+    "${SRC_DIR}/gameserver/utils/proto_fill.cpp"
+    "${SRC_DIR}/gameserver/archive/player_archive_service.cpp"
+    "${SRC_DIR}/gameserver/jolt_server.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/entity.cpp"
+    "${SRC_DIR}/gameserver/ecs/entity/player_entity.cpp"
+    "${SRC_DIR}/gameserver/handlers/connection_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/account_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/role_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/game_handler.cpp"
+    "${SRC_DIR}/gameserver/handlers/move_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_grid.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_view_bridge.cpp"
+    "${SRC_DIR}/gameserver/handlers/jump_handler.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/aoi_sector.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/world_system.cpp"
+    "${SRC_DIR}/gameserver/session/connection_system.cpp"
+    "${SRC_DIR}/gameserver/session/account_system.cpp"
+    "${SRC_DIR}/gameserver/session/role_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/map_config_defaults.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_entity_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/move_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/jolt_system.cpp"
+    "${SRC_DIR}/gameserver/ecs/components/move_component.cpp"
+    "${SRC_DIR}/gameserver/ecs/systems/player_persist_system.cpp"
     $<TARGET_OBJECTS:zrpc>
     $<TARGET_OBJECTS:game_proto>
 )
@@ -423,6 +510,7 @@ set_target_properties(svc_game_3d_protocol_mass_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_mass_test PRIVATE -fpermissive -w -march=native)
 target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_mass_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE mongo)
 
@@ -455,6 +543,21 @@ target_link_libraries(aoi_enter_leave_test PRIVATE ${PROTOBUF_LIB} pthread)
 set_target_properties(aoi_enter_leave_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(aoi_enter_leave_test PRIVATE -fpermissive -w)
+
+# ============================================================================
+# 5b. aoi_enter_leave_test_zn — AOI 进出视野测试（中文日志版/多客户端压测版）
+# ============================================================================
+add_executable(aoi_enter_leave_test_zn
+    "${SRC_DIR}/client/aoi_enter_leave_test_zn.cc"
+    $<TARGET_OBJECTS:zrpc>
+    $<TARGET_OBJECTS:game_proto>
+)
+target_include_directories(aoi_enter_leave_test_zn PRIVATE ${INC_DIRS})
+target_link_directories(aoi_enter_leave_test_zn PRIVATE ${PROTOBUF_LINK_DIRS})
+target_link_libraries(aoi_enter_leave_test_zn PRIVATE ${PROTOBUF_LIB} pthread)
+set_target_properties(aoi_enter_leave_test_zn PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
+target_compile_options(aoi_enter_leave_test_zn PRIVATE -fpermissive -w)
 
 # ============================================================================
 # 6. svc_game_3d_stress_test

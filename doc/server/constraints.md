@@ -3,7 +3,7 @@
 ## 18. 设计约束与已知坑
 
 1. **MoveEntity 必须在 OnMove 之前**  
-2. **AOI 不推自身 appear** —— Handler/重连手动发  
+2. **自身 appear 仅 `NotifySelfAppear` 一次**（`EnterMap` 末尾）；update/disappear 永不推自身  
 3. **进图时周围人由 AddWatcher 推给自己** —— 勿重复实现  
 4. **kInGame ≠ IsInMap**  
 5. **顶号必须清旧 Context**，断线校验 conn 归属  

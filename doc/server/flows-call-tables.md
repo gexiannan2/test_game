@@ -13,7 +13,7 @@
 | 4 | `aoi_.OnSubjectEnterMap` | 别人收到你的 appear |
 | 5 | `aoi_.AddWatcher` | 你收到周围 appear |
 | 6 | `map_->NotifyEnterMap` | 你收到 enter_map |
-| 7 | Handler `BuildAppearBody(self)` | 你收到自己的 appear |
+| 7 | `NotifySelfAppear` | 你收到自己的 appear（`is_self=true`，仅一次） |
 
 ### 26.2 MoveEntity
 

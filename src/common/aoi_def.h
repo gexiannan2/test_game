@@ -99,8 +99,17 @@ struct GridKeyHash {
 };
 
 inline constexpr uint32_t kAoiFarCellWorldSize = 500;
-inline constexpr uint32_t kDefaultCellSizes[] = { kAoiCellWorldSize };
-inline constexpr size_t kDetailLevelCount = 1;
+
+// detail_level 0 = 近景（小地图/本地，格边 10m）；1 = 远景（大地图，格边 500m）。
+// 观察者只挂一层；被观察者进图时注册到所有层，脏同步按层隔离 receivers。
+inline constexpr int kAoiDetailNear = 0;
+inline constexpr int kAoiDetailFar = 1;
+inline constexpr uint32_t kDefaultCellSizes[] = {
+    kAoiCellWorldSize,      // near
+    // kAoiFarCellWorldSize,   // far
+};
+inline constexpr size_t kDetailLevelCount =
+    sizeof(kDefaultCellSizes) / sizeof(kDefaultCellSizes[0]);
 inline constexpr int32_t kNeighborhoodRadius = kAoiRadius;
 
 enum class AoiEventKind {
@@ -127,16 +136,6 @@ struct AoiBroadcastEvent {
 };
 
 using AoiBroadcastNotifyFn = std::function<void(const AoiBroadcastEvent&)>;
-
-using EnterMapCallback =
-    std::function<void(const EntityPtr&)>;
-using LeaveMapCallback =
-    std::function<void(const EntityPtr&)>;
-using MoveCallback =
-    std::function<void(const EntityPtr&, const Vector3D&, const Vector3D&)>;
-using CrossGridCallback =
-    std::function<void(const EntityPtr&, uint32_t, uint32_t, uint32_t,
-                       uint32_t, uint32_t, uint32_t)>;
 
 using EntityEnterCallback =
     std::function<void(uint64_t, const std::vector<uint64_t>&)>;

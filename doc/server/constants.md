@@ -14,6 +14,6 @@
 | 默认 map_ins_id | 1（`server::kDefaultMapInstanceId`） |
 | 默认地图 cfg | 1001 |
 | 默认 gate | `10.23.0.99:20002`（`GAME_GATE_ADDR` 可覆盖） |
-| 协议 err / kickoff | 见 `src/server/server_constants.h` |
+| 协议 err / kickoff | 见 `src/gameserver/server_constants.h` |
 
 ---

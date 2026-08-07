@@ -23,6 +23,6 @@
 
 ### 22.4 邻域
 
-`kNeighborhoodRadius = kAoiRadius = 0` → 仅中心 AOI 格。若将来调大半径，须同步修正 `HasWatcher`（勿只查中心格）与测试 Oracle。
+`kNeighborhoodRadius = kAoiRadius = 1` → 观察者邻域 ±1 AOI 格（3×3×3）。若将来调大半径，须同步修正 `HasWatcher`（当前仅查中心格）与测试 Oracle。
 
 ---

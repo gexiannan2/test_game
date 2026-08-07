@@ -61,6 +61,8 @@ PROTOBUF_CONSTEXPR entity_jump_data::entity_jump_data(
   , /*decltype(_impl_.jump_id_)*/0u
   , /*decltype(_impl_.op_)*/0
   , /*decltype(_impl_.client_time_)*/uint64_t{0u}
+  , /*decltype(_impl_.type_)*/0
+  , /*decltype(_impl_.air_jump_index_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct entity_jump_dataDefaultTypeInternal {
   PROTOBUF_CONSTEXPR entity_jump_dataDefaultTypeInternal()
@@ -264,7 +266,7 @@ struct entity_3dDefaultTypeInternal {
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 entity_3dDefaultTypeInternal _entity_3d_default_instance_;
 static ::_pb::Metadata file_level_metadata_client_5fcommon_2eproto[14];
-static const ::_pb::EnumDescriptor* file_level_enum_descriptors_client_5fcommon_2eproto[7];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_client_5fcommon_2eproto[8];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_client_5fcommon_2eproto = nullptr;
 
 const uint32_t TableStruct_client_5fcommon_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
@@ -301,6 +303,8 @@ const uint32_t TableStruct_client_5fcommon_2eproto::offsets[] PROTOBUF_SECTION_V
   PROTOBUF_FIELD_OFFSET(::entity_jump_data, _impl_.rot_),
   PROTOBUF_FIELD_OFFSET(::entity_jump_data, _impl_.velocity_),
   PROTOBUF_FIELD_OFFSET(::entity_jump_data, _impl_.client_time_),
+  PROTOBUF_FIELD_OFFSET(::entity_jump_data, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::entity_jump_data, _impl_.air_jump_index_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::entity_dodge_data, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -432,17 +436,17 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 0, -1, -1, sizeof(::entity_player_data)},
   { 9, -1, -1, sizeof(::entity_move_data)},
   { 21, -1, -1, sizeof(::entity_jump_data)},
-  { 33, -1, -1, sizeof(::entity_dodge_data)},
-  { 42, -1, -1, sizeof(::weapon_capsule)},
-  { 52, -1, -1, sizeof(::entity_skill_data)},
-  { 65, -1, -1, sizeof(::entity_data)},
-  { 73, -1, -1, sizeof(::entity)},
-  { 87, -1, -1, sizeof(::entity_battle)},
-  { 96, -1, -1, sizeof(::entity_appear_item)},
-  { 104, -1, -1, sizeof(::entity_base_data)},
-  { 130, -1, -1, sizeof(::vec3)},
-  { 139, -1, -1, sizeof(::quat)},
-  { 149, -1, -1, sizeof(::entity_3d)},
+  { 35, -1, -1, sizeof(::entity_dodge_data)},
+  { 44, -1, -1, sizeof(::weapon_capsule)},
+  { 54, -1, -1, sizeof(::entity_skill_data)},
+  { 67, -1, -1, sizeof(::entity_data)},
+  { 75, -1, -1, sizeof(::entity)},
+  { 89, -1, -1, sizeof(::entity_battle)},
+  { 98, -1, -1, sizeof(::entity_appear_item)},
+  { 106, -1, -1, sizeof(::entity_base_data)},
+  { 132, -1, -1, sizeof(::vec3)},
+  { 141, -1, -1, sizeof(::quat)},
+  { 151, -1, -1, sizeof(::entity_3d)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -470,83 +474,88 @@ const char descriptor_table_protodef_client_5fcommon_2eproto[] PROTOBUF_SECTION_
   "\003pos\030\001 \001(\0132\005.vec3\022\034\n\006status\030\002 \001(\0162\014.move"
   "_status\022\022\n\003rot\030\003 \001(\0132\005.quat\022\027\n\010move_rot\030"
   "\004 \001(\0132\005.quat\022\027\n\010velocity\030\005 \001(\0132\005.vec3\022\023\n"
-  "\013client_time\030\006 \001(\004\"\217\001\n\020entity_jump_data\022"
+  "\013client_time\030\006 \001(\004\"\301\001\n\020entity_jump_data\022"
   "\017\n\007jump_id\030\001 \001(\r\022\024\n\002op\030\002 \001(\0162\010.jump_op\022\022"
   "\n\003pos\030\003 \001(\0132\005.vec3\022\022\n\003rot\030\004 \001(\0132\005.quat\022\027"
   "\n\010velocity\030\005 \001(\0132\005.vec3\022\023\n\013client_time\030\006"
-  " \001(\004\"P\n\021entity_dodge_data\022\022\n\003pos\030\001 \001(\0132\005"
-  ".vec3\022\022\n\003rot\030\002 \001(\0132\005.quat\022\023\n\013client_time"
-  "\030\003 \001(\004\"X\n\016weapon_capsule\022\022\n\003pos\030\001 \001(\0132\005."
-  "vec3\022\022\n\003rot\030\002 \001(\0132\005.quat\022\016\n\006radius\030\003 \001(\002"
-  "\022\016\n\006height\030\004 \001(\002\"\274\001\n\021entity_skill_data\022\024"
-  "\n\014skill_cfg_id\030\001 \001(\r\022\023\n\013combo_index\030\002 \001("
-  "\r\022\022\n\003pos\030\003 \001(\0132\005.vec3\022\022\n\003rot\030\004 \001(\0132\005.qua"
-  "t\022\023\n\013client_time\030\005 \001(\004\022\036\n\006battle\030\006 \001(\0132\016"
-  ".entity_battle\022\037\n\006weapon\030\007 \001(\0132\017.weapon_"
-  "capsule\"<\n\013entity_data\022\037\n\004type\030\001 \001(\0162\021.e"
-  "ntity_data_type\022\014\n\004data\030\002 \001(\014\"\251\001\n\006entity"
-  "\022\n\n\002id\030\001 \001(\004\022\022\n\003pos\030\002 \001(\0132\005.vec3\022\022\n\003rot\030"
-  "\003 \001(\0132\005.quat\022\032\n\004type\030\004 \001(\0162\014.entity_type"
-  "\022\027\n\010move_rot\030\005 \001(\0132\005.quat\022\027\n\010velocity\030\006 "
-  "\001(\0132\005.vec3\022\016\n\006cfg_id\030\007 \001(\r\022\r\n\005layer\030\010 \001("
-  "\005\"`\n\rentity_battle\022\031\n\nweapon_pos\030\001 \001(\0132\005"
-  ".vec3\022\031\n\nweapon_rot\030\002 \001(\0132\005.quat\022\031\n\natta"
-  "ck_rot\030\003 \001(\0132\005.quat\"/\n\022entity_appear_ite"
-  "m\022\n\n\002id\030\001 \001(\r\022\r\n\005value\030\002 \001(\004\"\226\003\n\020entity_"
-  "base_data\022\n\n\002lv\030\001 \001(\r\022\013\n\003job\030\002 \001(\r\022\013\n\003se"
-  "x\030\003 \001(\r\022\017\n\007face_id\030\004 \001(\r\022\022\n\nchat_bg_id\030\005"
-  " \001(\r\022\021\n\tavatar_id\030\006 \001(\r\022\026\n\016photo_frame_i"
-  "d\030\007 \001(\r\022\020\n\010group_id\030\010 \001(\004\022\020\n\010guild_id\030\t "
-  "\001(\004\022\014\n\004name\030\n \001(\t\022\020\n\010re_level\030\013 \001(\r\022\024\n\014g"
-  "ood_evil_id\030\014 \001(\005\022\022\n\nwalk_speed\030\r \001(\r\022\023\n"
-  "\013magic_speed\030\016 \001(\r\022\017\n\007camp_id\030\017 \001(\004\022\022\n\ns"
-  "p_camp_id\030\020 \001(\004\022\022\n\nflag_state\030\021 \001(\004\022\022\n\ng"
-  "uild_name\030\022 \001(\t\022\022\n\nexp_hitter\030\023 \001(\004\022(\n\013a"
-  "ppear_list\030\024 \003(\0132\023.entity_appear_item\"\'\n"
-  "\004vec3\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002\022\t\n\001z\030\003 \001(\002\"2"
-  "\n\004quat\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002\022\t\n\001z\030\003 \001(\002\022"
-  "\t\n\001w\030\004 \001(\002\"s\n\tentity_3d\022\021\n\tentity_id\030\001 \001"
-  "(\004\022\032\n\004type\030\002 \001(\0162\014.entity_type\022\017\n\007is_sel"
-  "f\030\003 \001(\010\022&\n\020entity_data_list\030\004 \003(\0132\014.enti"
-  "ty_data*8\n\007jump_op\022\016\n\nJUMP_START\020\000\022\016\n\nJU"
-  "MP_STEER\020\001\022\r\n\tJUMP_LAND\020\002*\324\001\n\020entity_dat"
-  "a_type\022\034\n\030ENTITY_DATA_TYPE_INVALID\020\000\022 \n\034"
-  "ENTITY_DATA_TYPE_PLAYER_DATA\020\001\022\036\n\032ENTITY"
-  "_DATA_TYPE_MOVE_DATA\020\002\022\036\n\032ENTITY_DATA_TY"
-  "PE_JUMP_DATA\020\003\022\037\n\033ENTITY_DATA_TYPE_DODGE"
-  "_DATA\020\004\022\037\n\033ENTITY_DATA_TYPE_SKILL_DATA\020\005"
-  "*\231\001\n\013entity_type\022\017\n\013ENTITY_NONE\020\000\022\021\n\rENT"
-  "ITY_PLAYER\020\001\022\022\n\016ENTITY_MONSTER\020\002\022\016\n\nENTI"
-  "TY_MAP\020\003\022\017\n\013ENTITY_ITEM\020\004\022\016\n\nENTITY_BUF\020"
-  "\005\022\020\n\014ENTITY_MAGIC\020\006\022\017\n\013ENTITY_ATTR\020\007*\221\001\n"
-  "\013move_status\022\024\n\020MOVE_STATUS_IDLE\020\000\022\024\n\020MO"
-  "VE_STATUS_WALK\020\001\022\023\n\017MOVE_STATUS_RUN\020\002\022\024\n"
-  "\020MOVE_STATUS_JUMP\020\003\022\025\n\021MOVE_STATUS_DODGE"
-  "\020\004\022\024\n\020MOVE_STATUS_FALL\020\005*\342\002\n\nerror_code\022"
-  "\024\n\020ERR_CODE_SUCCESS\020\000\022\021\n\rERR_CODE_FAIL\020\001"
-  "\022\032\n\026ERR_CODE_INVALID_PARAM\020\002\022\024\n\020ERR_CODE"
-  "_TIMEOUT\020\003\022\026\n\022ERR_CODE_NOT_FOUND\020\004\022\027\n\023ER"
-  "R_CODE_PERMISSION\020\005\022\031\n\025ERR_CODE_LIMIT_EX"
-  "CEED\020\006\022\032\n\026ERR_CODE_STATE_INVALID\020\007\022\025\n\021ER"
-  "R_CODE_COOLDOWN\020\010\022\027\n\023ERR_CODE_NOT_IN_MAP"
-  "\020\t\022\031\n\025ERR_CODE_NOT_IN_SCENE\020\n\022\033\n\027ERR_COD"
-  "E_DISTANCE_LIMIT\020\013\022\026\n\022ERR_CODE_IN_COMBAT"
-  "\020\014\022\021\n\rERR_CODE_DEAD\020\r*\301\001\n\020entity_attr_ty"
-  "pe\022\022\n\016ENTITY_ATTR_HP\020\000\022\022\n\016ENTITY_ATTR_MP"
-  "\020\001\022\026\n\022ENTITY_ATTR_MAX_HP\020\002\022\026\n\022ENTITY_ATT"
-  "R_MAX_MP\020\003\022\023\n\017ENTITY_ATTR_ATK\020\004\022\023\n\017ENTIT"
-  "Y_ATTR_DEF\020\005\022\025\n\021ENTITY_ATTR_SPEED\020\006\022\024\n\020E"
-  "NTITY_ATTR_CRIT\020\007*\342\001\n\021entity_state_flag\022"
-  "\032\n\026ENTITY_STATE_FLAG_NONE\020\000\022\032\n\026ENTITY_ST"
-  "ATE_FLAG_DEAD\020\001\022\032\n\026ENTITY_STATE_FLAG_STU"
-  "N\020\002\022\035\n\031ENTITY_STATE_FLAG_SILENCE\020\004\022\034\n\030EN"
-  "TITY_STATE_FLAG_IMMUNE\020\010\022\037\n\033ENTITY_STATE"
-  "_FLAG_INVISIBLE\020\020\022\033\n\027ENTITY_STATE_FLAG_M"
-  "OUNT\020 b\006proto3"
+  " \001(\004\022\030\n\004type\030\007 \001(\0162\n.jump_type\022\026\n\016air_ju"
+  "mp_index\030\010 \001(\r\"P\n\021entity_dodge_data\022\022\n\003p"
+  "os\030\001 \001(\0132\005.vec3\022\022\n\003rot\030\002 \001(\0132\005.quat\022\023\n\013c"
+  "lient_time\030\003 \001(\004\"X\n\016weapon_capsule\022\022\n\003po"
+  "s\030\001 \001(\0132\005.vec3\022\022\n\003rot\030\002 \001(\0132\005.quat\022\016\n\006ra"
+  "dius\030\003 \001(\002\022\016\n\006height\030\004 \001(\002\"\274\001\n\021entity_sk"
+  "ill_data\022\024\n\014skill_cfg_id\030\001 \001(\r\022\023\n\013combo_"
+  "index\030\002 \001(\r\022\022\n\003pos\030\003 \001(\0132\005.vec3\022\022\n\003rot\030\004"
+  " \001(\0132\005.quat\022\023\n\013client_time\030\005 \001(\004\022\036\n\006batt"
+  "le\030\006 \001(\0132\016.entity_battle\022\037\n\006weapon\030\007 \001(\013"
+  "2\017.weapon_capsule\"<\n\013entity_data\022\037\n\004type"
+  "\030\001 \001(\0162\021.entity_data_type\022\014\n\004data\030\002 \001(\014\""
+  "\251\001\n\006entity\022\n\n\002id\030\001 \001(\004\022\022\n\003pos\030\002 \001(\0132\005.ve"
+  "c3\022\022\n\003rot\030\003 \001(\0132\005.quat\022\032\n\004type\030\004 \001(\0162\014.e"
+  "ntity_type\022\027\n\010move_rot\030\005 \001(\0132\005.quat\022\027\n\010v"
+  "elocity\030\006 \001(\0132\005.vec3\022\016\n\006cfg_id\030\007 \001(\r\022\r\n\005"
+  "layer\030\010 \001(\005\"`\n\rentity_battle\022\031\n\nweapon_p"
+  "os\030\001 \001(\0132\005.vec3\022\031\n\nweapon_rot\030\002 \001(\0132\005.qu"
+  "at\022\031\n\nattack_rot\030\003 \001(\0132\005.quat\"/\n\022entity_"
+  "appear_item\022\n\n\002id\030\001 \001(\r\022\r\n\005value\030\002 \001(\004\"\226"
+  "\003\n\020entity_base_data\022\n\n\002lv\030\001 \001(\r\022\013\n\003job\030\002"
+  " \001(\r\022\013\n\003sex\030\003 \001(\r\022\017\n\007face_id\030\004 \001(\r\022\022\n\nch"
+  "at_bg_id\030\005 \001(\r\022\021\n\tavatar_id\030\006 \001(\r\022\026\n\016pho"
+  "to_frame_id\030\007 \001(\r\022\020\n\010group_id\030\010 \001(\004\022\020\n\010g"
+  "uild_id\030\t \001(\004\022\014\n\004name\030\n \001(\t\022\020\n\010re_level\030"
+  "\013 \001(\r\022\024\n\014good_evil_id\030\014 \001(\005\022\022\n\nwalk_spee"
+  "d\030\r \001(\r\022\023\n\013magic_speed\030\016 \001(\r\022\017\n\007camp_id\030"
+  "\017 \001(\004\022\022\n\nsp_camp_id\030\020 \001(\004\022\022\n\nflag_state\030"
+  "\021 \001(\004\022\022\n\nguild_name\030\022 \001(\t\022\022\n\nexp_hitter\030"
+  "\023 \001(\004\022(\n\013appear_list\030\024 \003(\0132\023.entity_appe"
+  "ar_item\"\'\n\004vec3\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002\022\t\n"
+  "\001z\030\003 \001(\002\"2\n\004quat\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002\022\t"
+  "\n\001z\030\003 \001(\002\022\t\n\001w\030\004 \001(\002\"s\n\tentity_3d\022\021\n\tent"
+  "ity_id\030\001 \001(\004\022\032\n\004type\030\002 \001(\0162\014.entity_type"
+  "\022\017\n\007is_self\030\003 \001(\010\022&\n\020entity_data_list\030\004 "
+  "\003(\0132\014.entity_data*8\n\007jump_op\022\016\n\nJUMP_STA"
+  "RT\020\000\022\016\n\nJUMP_STEER\020\001\022\r\n\tJUMP_LAND\020\002*v\n\tj"
+  "ump_type\022\024\n\020JUMP_TYPE_NORMAL\020\000\022\024\n\020JUMP_T"
+  "YPE_DOUBLE\020\001\022\022\n\016JUMP_TYPE_FALL\020\002\022\023\n\017JUMP"
+  "_TYPE_SLIDE\020\003\022\024\n\020JUMP_TYPE_DRAGON\020\004*\324\001\n\020"
+  "entity_data_type\022\034\n\030ENTITY_DATA_TYPE_INV"
+  "ALID\020\000\022 \n\034ENTITY_DATA_TYPE_PLAYER_DATA\020\001"
+  "\022\036\n\032ENTITY_DATA_TYPE_MOVE_DATA\020\002\022\036\n\032ENTI"
+  "TY_DATA_TYPE_JUMP_DATA\020\003\022\037\n\033ENTITY_DATA_"
+  "TYPE_DODGE_DATA\020\004\022\037\n\033ENTITY_DATA_TYPE_SK"
+  "ILL_DATA\020\005*\231\001\n\013entity_type\022\017\n\013ENTITY_NON"
+  "E\020\000\022\021\n\rENTITY_PLAYER\020\001\022\022\n\016ENTITY_MONSTER"
+  "\020\002\022\016\n\nENTITY_MAP\020\003\022\017\n\013ENTITY_ITEM\020\004\022\016\n\nE"
+  "NTITY_BUF\020\005\022\020\n\014ENTITY_MAGIC\020\006\022\017\n\013ENTITY_"
+  "ATTR\020\007*\250\001\n\013move_status\022\024\n\020MOVE_STATUS_ID"
+  "LE\020\000\022\024\n\020MOVE_STATUS_WALK\020\001\022\023\n\017MOVE_STATU"
+  "S_RUN\020\002\022\024\n\020MOVE_STATUS_JUMP\020\003\022\025\n\021MOVE_ST"
+  "ATUS_DODGE\020\004\022\024\n\020MOVE_STATUS_FALL\020\005\022\025\n\021MO"
+  "VE_STATUS_SLIDE\020\006*\342\002\n\nerror_code\022\024\n\020ERR_"
+  "CODE_SUCCESS\020\000\022\021\n\rERR_CODE_FAIL\020\001\022\032\n\026ERR"
+  "_CODE_INVALID_PARAM\020\002\022\024\n\020ERR_CODE_TIMEOU"
+  "T\020\003\022\026\n\022ERR_CODE_NOT_FOUND\020\004\022\027\n\023ERR_CODE_"
+  "PERMISSION\020\005\022\031\n\025ERR_CODE_LIMIT_EXCEED\020\006\022"
+  "\032\n\026ERR_CODE_STATE_INVALID\020\007\022\025\n\021ERR_CODE_"
+  "COOLDOWN\020\010\022\027\n\023ERR_CODE_NOT_IN_MAP\020\t\022\031\n\025E"
+  "RR_CODE_NOT_IN_SCENE\020\n\022\033\n\027ERR_CODE_DISTA"
+  "NCE_LIMIT\020\013\022\026\n\022ERR_CODE_IN_COMBAT\020\014\022\021\n\rE"
+  "RR_CODE_DEAD\020\r*\301\001\n\020entity_attr_type\022\022\n\016E"
+  "NTITY_ATTR_HP\020\000\022\022\n\016ENTITY_ATTR_MP\020\001\022\026\n\022E"
+  "NTITY_ATTR_MAX_HP\020\002\022\026\n\022ENTITY_ATTR_MAX_M"
+  "P\020\003\022\023\n\017ENTITY_ATTR_ATK\020\004\022\023\n\017ENTITY_ATTR_"
+  "DEF\020\005\022\025\n\021ENTITY_ATTR_SPEED\020\006\022\024\n\020ENTITY_A"
+  "TTR_CRIT\020\007*\342\001\n\021entity_state_flag\022\032\n\026ENTI"
+  "TY_STATE_FLAG_NONE\020\000\022\032\n\026ENTITY_STATE_FLA"
+  "G_DEAD\020\001\022\032\n\026ENTITY_STATE_FLAG_STUN\020\002\022\035\n\031"
+  "ENTITY_STATE_FLAG_SILENCE\020\004\022\034\n\030ENTITY_ST"
+  "ATE_FLAG_IMMUNE\020\010\022\037\n\033ENTITY_STATE_FLAG_I"
+  "NVISIBLE\020\020\022\033\n\027ENTITY_STATE_FLAG_MOUNT\020 b"
+  "\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_client_5fcommon_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_client_5fcommon_2eproto = {
-    false, false, 3174, descriptor_table_protodef_client_5fcommon_2eproto,
+    false, false, 3367, descriptor_table_protodef_client_5fcommon_2eproto,
     "client_common.proto",
     &descriptor_table_client_5fcommon_2eproto_once, nullptr, 0, 14,
     schemas, file_default_instances, TableStruct_client_5fcommon_2eproto::offsets,
@@ -574,9 +583,26 @@ bool jump_op_IsValid(int value) {
   }
 }
 
-const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* entity_data_type_descriptor() {
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* jump_type_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
   return file_level_enum_descriptors_client_5fcommon_2eproto[1];
+}
+bool jump_type_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* entity_data_type_descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
+  return file_level_enum_descriptors_client_5fcommon_2eproto[2];
 }
 bool entity_data_type_IsValid(int value) {
   switch (value) {
@@ -594,7 +620,7 @@ bool entity_data_type_IsValid(int value) {
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* entity_type_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
-  return file_level_enum_descriptors_client_5fcommon_2eproto[2];
+  return file_level_enum_descriptors_client_5fcommon_2eproto[3];
 }
 bool entity_type_IsValid(int value) {
   switch (value) {
@@ -614,7 +640,7 @@ bool entity_type_IsValid(int value) {
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* move_status_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
-  return file_level_enum_descriptors_client_5fcommon_2eproto[3];
+  return file_level_enum_descriptors_client_5fcommon_2eproto[4];
 }
 bool move_status_IsValid(int value) {
   switch (value) {
@@ -624,6 +650,7 @@ bool move_status_IsValid(int value) {
     case 3:
     case 4:
     case 5:
+    case 6:
       return true;
     default:
       return false;
@@ -632,7 +659,7 @@ bool move_status_IsValid(int value) {
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* error_code_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
-  return file_level_enum_descriptors_client_5fcommon_2eproto[4];
+  return file_level_enum_descriptors_client_5fcommon_2eproto[5];
 }
 bool error_code_IsValid(int value) {
   switch (value) {
@@ -658,7 +685,7 @@ bool error_code_IsValid(int value) {
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* entity_attr_type_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
-  return file_level_enum_descriptors_client_5fcommon_2eproto[5];
+  return file_level_enum_descriptors_client_5fcommon_2eproto[6];
 }
 bool entity_attr_type_IsValid(int value) {
   switch (value) {
@@ -678,7 +705,7 @@ bool entity_attr_type_IsValid(int value) {
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* entity_state_flag_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_client_5fcommon_2eproto);
-  return file_level_enum_descriptors_client_5fcommon_2eproto[6];
+  return file_level_enum_descriptors_client_5fcommon_2eproto[7];
 }
 bool entity_state_flag_IsValid(int value) {
   switch (value) {
@@ -1391,6 +1418,8 @@ entity_jump_data::entity_jump_data(const entity_jump_data& from)
     , decltype(_impl_.jump_id_){}
     , decltype(_impl_.op_){}
     , decltype(_impl_.client_time_){}
+    , decltype(_impl_.type_){}
+    , decltype(_impl_.air_jump_index_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -1404,8 +1433,8 @@ entity_jump_data::entity_jump_data(const entity_jump_data& from)
     _this->_impl_.velocity_ = new ::vec3(*from._impl_.velocity_);
   }
   ::memcpy(&_impl_.jump_id_, &from._impl_.jump_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.client_time_) -
-    reinterpret_cast<char*>(&_impl_.jump_id_)) + sizeof(_impl_.client_time_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.air_jump_index_) -
+    reinterpret_cast<char*>(&_impl_.jump_id_)) + sizeof(_impl_.air_jump_index_));
   // @@protoc_insertion_point(copy_constructor:entity_jump_data)
 }
 
@@ -1420,6 +1449,8 @@ inline void entity_jump_data::SharedCtor(
     , decltype(_impl_.jump_id_){0u}
     , decltype(_impl_.op_){0}
     , decltype(_impl_.client_time_){uint64_t{0u}}
+    , decltype(_impl_.type_){0}
+    , decltype(_impl_.air_jump_index_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -1463,8 +1494,8 @@ void entity_jump_data::Clear() {
   }
   _impl_.velocity_ = nullptr;
   ::memset(&_impl_.jump_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.client_time_) -
-      reinterpret_cast<char*>(&_impl_.jump_id_)) + sizeof(_impl_.client_time_));
+      reinterpret_cast<char*>(&_impl_.air_jump_index_) -
+      reinterpret_cast<char*>(&_impl_.jump_id_)) + sizeof(_impl_.air_jump_index_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1519,6 +1550,23 @@ const char* entity_jump_data::_InternalParse(const char* ptr, ::_pbi::ParseConte
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
           _impl_.client_time_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .jump_type type = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_type(static_cast<::jump_type>(val));
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 air_jump_index = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _impl_.air_jump_index_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -1592,6 +1640,19 @@ uint8_t* entity_jump_data::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt64ToArray(6, this->_internal_client_time(), target);
   }
 
+  // .jump_type type = 7;
+  if (this->_internal_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+      7, this->_internal_type(), target);
+  }
+
+  // uint32 air_jump_index = 8;
+  if (this->_internal_air_jump_index() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(8, this->_internal_air_jump_index(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -1645,6 +1706,17 @@ size_t entity_jump_data::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_client_time());
   }
 
+  // .jump_type type = 7;
+  if (this->_internal_type() != 0) {
+    total_size += 1 +
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
+  }
+
+  // uint32 air_jump_index = 8;
+  if (this->_internal_air_jump_index() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_air_jump_index());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1684,6 +1756,12 @@ void entity_jump_data::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const
   if (from._internal_client_time() != 0) {
     _this->_internal_set_client_time(from._internal_client_time());
   }
+  if (from._internal_type() != 0) {
+    _this->_internal_set_type(from._internal_type());
+  }
+  if (from._internal_air_jump_index() != 0) {
+    _this->_internal_set_air_jump_index(from._internal_air_jump_index());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -1702,8 +1780,8 @@ void entity_jump_data::InternalSwap(entity_jump_data* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(entity_jump_data, _impl_.client_time_)
-      + sizeof(entity_jump_data::_impl_.client_time_)
+      PROTOBUF_FIELD_OFFSET(entity_jump_data, _impl_.air_jump_index_)
+      + sizeof(entity_jump_data::_impl_.air_jump_index_)
       - PROTOBUF_FIELD_OFFSET(entity_jump_data, _impl_.pos_)>(
           reinterpret_cast<char*>(&_impl_.pos_),
           reinterpret_cast<char*>(&other->_impl_.pos_));

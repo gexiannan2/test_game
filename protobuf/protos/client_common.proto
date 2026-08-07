@@ -12,11 +12,20 @@
 
 syntax = "proto3";
 
-// 跳跃操作类型 (起跳/空中转向/落地)
+// 跳跃操作阶段 (一次空中会话内的时序：起跳/修正/落地)
 enum jump_op {
-    JUMP_START = 0;  // 起跳
-    JUMP_STEER = 1;  // 空中转向
-    JUMP_LAND  = 2;  // 落地
+    JUMP_START = 0;  // 进入空中（起跳 / 失足下落 / 下滑 / 二段起跳）
+    JUMP_STEER = 1;  // 空中修正（转向/轨迹）
+    JUMP_LAND  = 2;  // 落地结束空中会话
+}
+
+// 跳跃/空中位移种类（与 jump_op 正交：op=阶段，type=种类）
+enum jump_type {
+    JUMP_TYPE_NORMAL = 0;  // 普通一段跳
+    JUMP_TYPE_DOUBLE = 1;  // 二段跳
+    JUMP_TYPE_FALL   = 2;  // 悬崖/失足下落（不用 move 协议）
+    JUMP_TYPE_SLIDE  = 3;  // 斜坡下滑
+    JUMP_TYPE_DRAGON = 4;  // 龙之跳跃（预留）
 }
 
 // 玩家实体完整数据 (空间 + 属性 + 战斗, 用于 appear/appear_ntf)
@@ -37,13 +46,16 @@ message entity_move_data {
 }
 
 // 跳跃同步数据 (req/res/update_ntf 共用)
+// 空中位移（跳/下落/下滑）一律走 cli_3d_jump_*，不与 cli_3d_move_* 混用。
 message entity_jump_data {
-    uint32 jump_id     = 1;
-    jump_op op         = 2;
-    vec3   pos         = 3;
-    quat   rot         = 4;
-    vec3   velocity    = 5;
-    uint64 client_time = 6;
+    uint32    jump_id        = 1;  // 空中会话 ID（START 生成，STEER/LAND/二段复用）
+    jump_op   op             = 2;  // 阶段
+    vec3      pos            = 3;
+    quat      rot            = 4;
+    vec3      velocity       = 5;
+    uint64    client_time    = 6;
+    jump_type type           = 7;  // 种类
+    uint32    air_jump_index = 8;  // 0=首段, 1=二段…
 }
 
 // 闪避同步数据 (req/res/update_ntf 共用)
@@ -165,14 +177,16 @@ enum entity_type {
     ENTITY_ATTR    = 7;  // 属性实体
 }
 
-// 移动方式 (走路/奔跑/跳跃等)
+// 移动方式 (走路/奔跑等)。JUMP/FALL/SLIDE 仅作表现提示；
+// 真正空中位移必须走 cli_3d_jump_req，服务端会拒绝用 move 携带这些状态。
 enum move_status {
     MOVE_STATUS_IDLE  = 0;  // 待机
     MOVE_STATUS_WALK  = 1;  // 走路
     MOVE_STATUS_RUN   = 2;  // 奔跑
-    MOVE_STATUS_JUMP  = 3;  // 跳跃中
+    MOVE_STATUS_JUMP  = 3;  // （禁止经 move 上报，请用 jump）
     MOVE_STATUS_DODGE = 4;  // 闪避翻滚中
-    MOVE_STATUS_FALL  = 5;  // 下落
+    MOVE_STATUS_FALL  = 5;  // （禁止经 move 上报，请用 jump FALL）
+    MOVE_STATUS_SLIDE = 6;  // （禁止经 move 上报，请用 jump SLIDE）
 }
 
 // 错误码 (所有 res 必须包含)

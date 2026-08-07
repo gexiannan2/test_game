@@ -18,7 +18,6 @@
 #define PKC_DBG_FLUSH() ((void)0)
 #endif
 
-// bit6 加解密（摘自 e996_codec/codec_bit6.cpp；ENCRYPT 时处理 msg_id+body）
 namespace {
 namespace bit6 {
 

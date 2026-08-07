@@ -1,7 +1,7 @@
 # 玩家数据 MongoDB 异步落地模块
 
 > 状态：已接入构建（mongo 总是编译，无条件编译开关）+ 移动异步落地已实现（节流 + PostSave + shutdown 排空）；单元/集成测试待补  
-> 源码目标路径：`src/server/mongo/`  
+> 源码目标路径：`src/mongo/`  
 > 现有原型：已迁入（原 `MongoStandalone`）  
 > 驱动：mongo-c-driver **2.3.3** + mongo-cxx-driver **r4.4.1**（源码静态编入，不随服发布 DLL/SO）
 
@@ -17,7 +17,7 @@
   - `AsyncMongoDispatcher` — 按 `playerId` 固定到 worker，同玩家 FIFO
   - `MongoClient` — 连接池 + CRUD
   - 模块自带 CRUD / 异步派发 / QPS 基准测试
-- 游戏服 `src/server` 尚未引用该模块；移动路径（`MoveHandler`）只改内存 AOI，无持久化。
+- 游戏服 `src/gameserver` 尚未引用该模块；移动路径（`MoveHandler`）只改内存 AOI，无持久化。
 
 ### 1.2 本阶段目标（MVP）
 
@@ -39,10 +39,10 @@
 
 | 项 | 旧 | 新 |
 |----|----|----|
-| 目录 | `src/server/MongoStandalone/MongoStandalone/` | `src/server/mongo/` |
+| 目录 | `src/mongoStandalone/MongoStandalone/` | `src/mongo/` |
 | CMake 目标 | `mongo_player_storage` | `mongo` |
 | include / 命名空间 | `mongo_standalone` | `mongo` |
-| 头文件 | `mongo_standalone/...` | `src/server/mongo/include/*.h`（`#include "PlayerMongoStorage.h"`） |
+| 头文件 | `mongo_standalone/...` | `src/mongo/include/*.h`（`#include "PlayerMongoStorage.h"`） |
 | 驱动源码 | 模块内 `third_party/src/` | 仓库根 `third_party/mongo-{c,cxx}-driver` |
 
 外层空壳 `MongoStandalone/` 删除；`.git` / `.vs` / `build` / `out` / `results` 等本地产物不进入主仓构建图（`.gitignore` 覆盖）。
@@ -205,7 +205,7 @@ endif()
 - 默认关闭模块内上游测试；独立验证时：
 
 ```bash
-cmake -S src/server/mongo -B build/mongo -DMONGO_BUILD_TESTS=ON
+cmake -S src/mongo -B build/mongo -DMONGO_BUILD_TESTS=ON
 ```
 
 - 主工程仍以 **WSL Linux + CMake + make/Ninja** 为准（与现有服一致）。Windows 下的 Mongo **服务端进程**仅作运行依赖，不参与编译。
@@ -232,7 +232,7 @@ WSL 内进程连 Windows 上的 mongod：优先 `localhost:27017`（WSL2 mirrore
 默认 URI（已与模块一致）：
 
 `mongodb://127.0.0.1:27017/?directConnection=true`  
-库名默认：`dbserver_mongo_test`
+库名默认：`game`
 
 ### 7.2 环境变量
 
@@ -259,7 +259,7 @@ WSL 内进程连 Windows 上的 mongod：优先 `localhost:27017`（WSL2 mirrore
 
 ### 8.2 游戏服新增测试
 
-新增：`src/server/tests/player_mongo_persist_test.cc`  
+新增：`src/gameserver/tests/player_mongo_persist_test.cc`  
 目标：挂到 `svc_game_3d_test`（或独立 `svc_game_3d_mongo_test`，避免默认 CI 强依赖 mongod）。
 
 推荐用例：
@@ -304,7 +304,7 @@ WSL 内进程连 Windows 上的 mongod：优先 `localhost:27017`（WSL2 mirrore
 | WSL ↔ Windows mongod 网络 | 中 | 先 `mongosh`/`mongo` ping；文档写明 |
 | `map_cfg_id_` 为 uint64 → int32 | 低 | 范围检查 |
 | 关服丢最后几笔写 | 中 | `WaitForIdle`；后续可加离图强制 flush |
-| CODEBUDDY：勿改仓库 `third_party/` | — | 驱动已放仓库根 `third_party/mongo-*`；业务逻辑仍只改 `src/server/mongo` |
+| CODEBUDDY：勿改仓库 `third_party/` | — | 驱动已放仓库根 `third_party/mongo-*`；业务逻辑仍只改 `src/mongo` |
 | CMake 目标名 `mongo` 过短 | 低 | 仅本工程子目录目标；与上游 `mongoc_*` 不冲突 |
 | VS rsync `--exclude=build` 导致找不到 `BuildVersion.cmake` | 高 | **禁止**用未锚定的 `build` 做同步排除；产物目录用 `out/`（见 `CMakePresets.json`）。驱动模块在 `mongo-c-driver/build/cmake/` |
 
@@ -322,14 +322,14 @@ WSL 内进程连 Windows 上的 mongod：优先 `localhost:27017`（WSL2 mirrore
 
 ### 结构调整
 
-- `src/server/MongoStandalone/MongoStandalone/**` → `src/server/mongo/**`
+- `src/mongoStandalone/MongoStandalone/**` → `src/mongo/**`
 - 头文件目录与 `#include` / `namespace`：`mongo_standalone` → `mongo`
 - CMake 目标：`mongo_player_storage` → `mongo`
 
 ### 构建
 
 - `CMakeLists.txt`（根）：`add_subdirectory`、link、宏、`INC_DIRS`
-- `src/server/mongo/CMakeLists.txt`：目标名与 option 对齐
+- `src/mongo/CMakeLists.txt`：目标名与 option 对齐
 
 ### 游戏服
 
@@ -353,7 +353,7 @@ WSL 内进程连 Windows 上的 mongod：优先 `localhost:27017`（WSL2 mirrore
 
 已确认：
 
-1. **目录 / namespace / CMake 目标** 统一为 `mongo`（`src/server/mongo/`）。
+1. **目录 / namespace / CMake 目标** 统一为 `mongo`（`src/mongo/`）。
 
 待确认：
 
@@ -370,14 +370,14 @@ WSL 内进程连 Windows 上的 mongod：优先 `localhost:27017`（WSL2 mirrore
 
 ### 13.1 已实现内容
 
-步骤 A/B 此前已完成（目录 `src/server/mongo/`、namespace `mongo`、CMake 目标 `mongo`、根 `CMakeLists.txt` 链接 + `GAME_HAS_MONGO=1`）。本次补齐 C/D：
+步骤 A/B 此前已完成（目录 `src/mongo/`、namespace `mongo`、CMake 目标 `mongo`、根 `CMakeLists.txt` 链接 + `GAME_HAS_MONGO=1`）。本次补齐 C/D：
 
 | 步 | 文件 | 说明 |
 |----|------|------|
-| C | `src/server/systems/player_persist_system.h` / `.cpp`（新增） | 快照组装（读 Role/Map/Transform 组件，值语义）+ 按 `role_id` 节流 + 进程内单调 `sequence` + 委托 `PostSave` + `FlushOnShutdown`（`RequestStop`+`WaitForIdle(5s)`+`Stop`） |
-| C | `src/server/game_server.h` | `#ifdef GAME_HAS_MONGO` 加 `player_storage_` / `player_persist_` 成员、`GetPlayerPersist()`、`PersistPlayerAfterMove()` |
-| C | `src/server/game_server.cpp` | `Start` 按 `GAME_MONGO_ENABLE`/`MONGO_URI` 初始化（try/catch，失败仅 WARN 不阻断启动）；`DoGracefulStop` 在 `LeaveMap` 后、`server_.Stop` 前调 `FlushOnShutdown`；实现 `PersistPlayerAfterMove` |
-| D | `src/server/handlers/move_handler.cpp` | `MoveEntity` → `OnMove` 后、`SendMoveRes` 前 `#ifdef GAME_HAS_MONGO` 调 `PersistPlayerAfterMove` |
+| C | `src/gameserver/systems/player_persist_system.h` / `.cpp`（新增） | 快照组装（读 Role/Map/Transform 组件，值语义）+ 按 `role_id` 节流 + 进程内单调 `sequence` + 委托 `PostSave` + `FlushOnShutdown`（`RequestStop`+`WaitForIdle(5s)`+`Stop`） |
+| C | `src/gameserver/game_server.h` | `#ifdef GAME_HAS_MONGO` 加 `player_storage_` / `player_persist_` 成员、`GetPlayerPersist()`、`PersistPlayerAfterMove()` |
+| C | `src/gameserver/game_server.cpp` | `Start` 按 `GAME_MONGO_ENABLE`/`MONGO_URI` 初始化（try/catch，失败仅 WARN 不阻断启动）；`DoGracefulStop` 在 `LeaveMap` 后、`server_.Stop` 前调 `FlushOnShutdown`；实现 `PersistPlayerAfterMove` |
+| D | `src/gameserver/handlers/move_handler.cpp` | `MoveEntity` → `OnMove` 后、`SendMoveRes` 前 `#ifdef GAME_HAS_MONGO` 调 `PersistPlayerAfterMove` |
 | 构建 | `CMakeLists.txt` | `svc_game_3d_server` 源列表加 `player_persist_system.cpp` |
 
 ### 13.2 编译接入说明

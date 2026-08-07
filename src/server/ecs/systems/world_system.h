@@ -15,6 +15,7 @@
 #include "ecs/systems/aoi_system.h"
 #include "ecs/systems/move_system.h"
 #include "ecs/systems/jolt_system.h"
+#include "ai/behavior_tree/monster_ai_system.h"
 
 class JoltServer;
 
@@ -50,6 +51,7 @@ class WorldSystem {
 
     MapSystem& Map() { return *map_; }
     AoiSystem& Aoi() { return aoi_; }
+    game::ai::MonsterAiSystem& MonsterAi() { return monster_ai_system_; }
     MoveSystem& Move() { return full_move_system_; }
     JoltSystem& Jolt() { return jolt_system_; }
 
@@ -66,6 +68,7 @@ class WorldSystem {
 
     std::unique_ptr<MapSystem> map_;
     AoiSystem aoi_;
+    game::ai::MonsterAiSystem monster_ai_system_;
     MoveSystem full_move_system_;
     JoltSystem jolt_system_;
     JoltServer* jolt_server_ = nullptr;  // 非拥有，Tick 中调 Update

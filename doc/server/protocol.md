@@ -33,7 +33,7 @@
 | `kCliEnterGameReq/Res` | cli_enter_game_* | C↔S | GameHandler |
 | `kCliGlobalConfigRes` | cli_global_config_res | S→C | GameHandler（进图后推） |
 | `kCli3dEnterMap` | cli_3d_enter_map | S→C | AoiViewBridge::OnEntityEnterMap |
-| `kCli3dEntityAppearEx` | cli_3d_entity_appear_ex | S→C | Bridge / Handler 自身 appear |
+| `kCli3dEntityAppearEx` | cli_3d_aoi_appears_ntf | S→C | Bridge（含 NotifySelfAppear） |
 | `kCli3dEntityDisappearEx` | cli_3d_entity_disappear_ex | S→C | Bridge leave |
 | `kCli3dMoveReq/Res` | cli_3d_move_* | C↔S | MoveHandler |
 
@@ -62,7 +62,7 @@
 | kickoff code_id | 1/2/3 | 服务器踢人 / 顶号 / 顶角色 |
 | handshake_res.code | 0 | 接受 |
 
-常量定义见 `src/server/server_constants.h`（`GAME_GATE_ADDR` 可覆盖 gate）。
+常量定义见 `src/gameserver/server_constants.h`（`GAME_GATE_ADDR` 可覆盖 gate）。
 
 ---
 

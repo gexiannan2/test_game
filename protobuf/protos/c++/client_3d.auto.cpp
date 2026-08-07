@@ -20,10 +20,10 @@ namespace client_3d
         msg_reg_normal(cli_3d_enter_map_ntf);
         msg_reg_normal(cli_3d_leave_map_req);
         msg_reg_normal(cli_3d_leave_map_ntf);
+        msg_reg_normal(cli_3d_move_res);
         msg_reg_normal(cli_3d_dodge_res);
         msg_reg_normal(cli_3d_leave_map_res);
         msg_reg_normal(cli_3d_jump_res);
-        msg_reg_normal(cli_3d_move_res);
 
         return 0;
     }

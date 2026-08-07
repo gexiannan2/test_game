@@ -1,7 +1,7 @@
 # svc_game_3d_server 文档索引
 
 > **权威目录**：`doc/server/`  
-> **源码**：`src/server/`  
+> **源码**：`src/gameserver/`  
 > **Cursor 规则**：`.cursor/rules/server-code-flows.mdc`  
 > **更新约定**：改进图 / 移动 / AOI / 登录 / 断线时，同步改对应模块 md。
 
@@ -35,7 +35,7 @@
 | [aoi-system.md](aoi-system.md) | AOI / Sector / Monitor / ViewBridge |
 | [move-system.md](move-system.md) | MoveSystem / MoveComponent（NPC） |
 | [ecs.md](ecs.md) | Entity 状态机与 Component |
-| [mongo.md](mongo.md) | 玩家 Mongo 异步落地（`src/server/mongo`） |
+| [mongo.md](mongo.md) | 玩家 Mongo 异步落地（`src/mongo`） |
 
 ### 业务流程
 
@@ -60,6 +60,7 @@
 
 ## 快速入口
 
+- **AI 记忆（优先）** → [../memory/INDEX.md](../memory/INDEX.md)  
 - 进图谁推谁？ → [flows-enter-map.md](flows-enter-map.md)  
 - 移动顺序？ → [flows-move.md](flows-move.md) + [constraints.md](constraints.md)  
 - 重连顶号？ → [flows-disconnect.md](flows-disconnect.md) + [flows-login.md](flows-login.md)  

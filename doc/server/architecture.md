@@ -38,7 +38,7 @@ main.cc                进程入口
 ## 2. 目录与模块地图
 
 ```
-src/server/
+src/gameserver/
 ├── main.cc / game_server.h/.cpp
 ├── mongo/             # 玩家 Mongo 异步落地（INTERFACE 源码 + 驱动）
 ├── handlers/          # 协议入口

@@ -18,10 +18,9 @@ sequenceDiagram
     H->>SYS: 写组件 / 状态机
     C->>H: enter_game
     H->>WS: EnterMap
-    WS->>AOI: OnSubjectEnterMap + AddWatcher
-    AOI->>BR: 别人看到你 / 你看到别人
+    WS->>AOI: OnEntityIntoMap + AddWatcher + NotifySelfAppear
+    AOI->>BR: 别人看到你 / 你看到别人 / 自身 appear
     BR->>C: appear / enter_map
-    H->>C: 自身 appear
     loop 游戏中
         C->>H: move_req
         H->>WS: MoveEntity → OnMove

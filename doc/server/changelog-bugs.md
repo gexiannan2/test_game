@@ -31,6 +31,7 @@
 | P2 | role_list 无效 session 无回包 | session 失败/非 `kLoggedIn` 回 `cli_role_list_res` err≠0 |
 | P1 | role_login 校验前已踢同 role | `CheckRoleLogin` 通过后再 LeaveMap/kick；失败路径不踢人 |
 | P1 | Handler 状态/拒绝路径静默丢包 | role/move/enter_game 失败一律回对应 `*_res` |
+| P2 | handler protobuf cast 失败静默 return | login/handshake/reconnect/role_list 补 err res |
 | P2 | `OnKickoff` 直接 `SetInMap(false)` | 仅改连接态；离图由调用方 `LeaveMap` |
 | P2 | `MoveWatcher` 失败被忽略 | 失败时 Remove+Add 自愈；传 `EntityPtr` 避免二次查找 |
 | P2 | Init 前绑 AOI 回调无效 | `AoiSystem::Init` 末尾 `RebuildViewNotify` |

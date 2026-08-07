@@ -132,6 +132,34 @@ inline bool jump_op_Parse(
   return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<jump_op>(
     jump_op_descriptor(), name, value);
 }
+enum jump_type : int {
+  JUMP_TYPE_NORMAL = 0,
+  JUMP_TYPE_DOUBLE = 1,
+  JUMP_TYPE_FALL = 2,
+  JUMP_TYPE_SLIDE = 3,
+  JUMP_TYPE_DRAGON = 4,
+  jump_type_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  jump_type_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+bool jump_type_IsValid(int value);
+constexpr jump_type jump_type_MIN = JUMP_TYPE_NORMAL;
+constexpr jump_type jump_type_MAX = JUMP_TYPE_DRAGON;
+constexpr int jump_type_ARRAYSIZE = jump_type_MAX + 1;
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* jump_type_descriptor();
+template<typename T>
+inline const std::string& jump_type_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, jump_type>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function jump_type_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    jump_type_descriptor(), enum_t_value);
+}
+inline bool jump_type_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, jump_type* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<jump_type>(
+    jump_type_descriptor(), name, value);
+}
 enum entity_data_type : int {
   ENTITY_DATA_TYPE_INVALID = 0,
   ENTITY_DATA_TYPE_PLAYER_DATA = 1,
@@ -199,12 +227,13 @@ enum move_status : int {
   MOVE_STATUS_JUMP = 3,
   MOVE_STATUS_DODGE = 4,
   MOVE_STATUS_FALL = 5,
+  MOVE_STATUS_SLIDE = 6,
   move_status_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   move_status_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 bool move_status_IsValid(int value);
 constexpr move_status move_status_MIN = MOVE_STATUS_IDLE;
-constexpr move_status move_status_MAX = MOVE_STATUS_FALL;
+constexpr move_status move_status_MAX = MOVE_STATUS_SLIDE;
 constexpr int move_status_ARRAYSIZE = move_status_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* move_status_descriptor();
@@ -1013,6 +1042,8 @@ class entity_jump_data final :
     kJumpIdFieldNumber = 1,
     kOpFieldNumber = 2,
     kClientTimeFieldNumber = 6,
+    kTypeFieldNumber = 7,
+    kAirJumpIndexFieldNumber = 8,
   };
   // .vec3 pos = 3;
   bool has_pos() const;
@@ -1095,6 +1126,24 @@ class entity_jump_data final :
   void _internal_set_client_time(uint64_t value);
   public:
 
+  // .jump_type type = 7;
+  void clear_type();
+  ::jump_type type() const;
+  void set_type(::jump_type value);
+  private:
+  ::jump_type _internal_type() const;
+  void _internal_set_type(::jump_type value);
+  public:
+
+  // uint32 air_jump_index = 8;
+  void clear_air_jump_index();
+  uint32_t air_jump_index() const;
+  void set_air_jump_index(uint32_t value);
+  private:
+  uint32_t _internal_air_jump_index() const;
+  void _internal_set_air_jump_index(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:entity_jump_data)
  private:
   class _Internal;
@@ -1109,6 +1158,8 @@ class entity_jump_data final :
     uint32_t jump_id_;
     int op_;
     uint64_t client_time_;
+    int type_;
+    uint32_t air_jump_index_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -4941,6 +4992,46 @@ inline void entity_jump_data::set_client_time(uint64_t value) {
   // @@protoc_insertion_point(field_set:entity_jump_data.client_time)
 }
 
+// .jump_type type = 7;
+inline void entity_jump_data::clear_type() {
+  _impl_.type_ = 0;
+}
+inline ::jump_type entity_jump_data::_internal_type() const {
+  return static_cast< ::jump_type >(_impl_.type_);
+}
+inline ::jump_type entity_jump_data::type() const {
+  // @@protoc_insertion_point(field_get:entity_jump_data.type)
+  return _internal_type();
+}
+inline void entity_jump_data::_internal_set_type(::jump_type value) {
+  
+  _impl_.type_ = value;
+}
+inline void entity_jump_data::set_type(::jump_type value) {
+  _internal_set_type(value);
+  // @@protoc_insertion_point(field_set:entity_jump_data.type)
+}
+
+// uint32 air_jump_index = 8;
+inline void entity_jump_data::clear_air_jump_index() {
+  _impl_.air_jump_index_ = 0u;
+}
+inline uint32_t entity_jump_data::_internal_air_jump_index() const {
+  return _impl_.air_jump_index_;
+}
+inline uint32_t entity_jump_data::air_jump_index() const {
+  // @@protoc_insertion_point(field_get:entity_jump_data.air_jump_index)
+  return _internal_air_jump_index();
+}
+inline void entity_jump_data::_internal_set_air_jump_index(uint32_t value) {
+  
+  _impl_.air_jump_index_ = value;
+}
+inline void entity_jump_data::set_air_jump_index(uint32_t value) {
+  _internal_set_air_jump_index(value);
+  // @@protoc_insertion_point(field_set:entity_jump_data.air_jump_index)
+}
+
 // -------------------------------------------------------------------
 
 // entity_dodge_data
@@ -7404,6 +7495,11 @@ template <> struct is_proto_enum< ::jump_op> : ::std::true_type {};
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::jump_op>() {
   return ::jump_op_descriptor();
+}
+template <> struct is_proto_enum< ::jump_type> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::jump_type>() {
+  return ::jump_type_descriptor();
 }
 template <> struct is_proto_enum< ::entity_data_type> : ::std::true_type {};
 template <>
