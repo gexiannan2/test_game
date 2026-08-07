@@ -24,6 +24,7 @@ cmake_minimum_required(VERSION 3.21.0)
 
 project(svc_game_3d LANGUAGES C CXX)
 
+
 # ---------- C++ 标准 ----------
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -174,6 +175,7 @@ add_library(navmesh OBJECT
     "${NAVMESH_DIR}/nav/DetourNavMesh.cpp"
     "${NAVMESH_DIR}/nav/DetourNavMeshQuery.cpp"
     "${NAVMESH_DIR}/nav/DetourNode.cpp"
+    "${NAVMESH_DIR}/depend/common/format.cpp"
 )
 target_include_directories(navmesh
     PUBLIC
