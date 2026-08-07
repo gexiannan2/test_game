@@ -22,6 +22,10 @@
             "exclusionList": [
               ".vs",
               ".git",
+              "CMakeCache.txt",
+              "CMakeFiles",
+              "Makefile",
+              "cmake_install.cmake",
               "out",
               "bin",
               "src/server/mongo/_mongo_vendor"
@@ -46,6 +50,10 @@
             "exclusionList": [
               ".vs",
               ".git",
+              "CMakeCache.txt",
+              "CMakeFiles",
+              "Makefile",
+              "cmake_install.cmake",
               "out",
               "bin",
               "src/server/mongo/_mongo_vendor"

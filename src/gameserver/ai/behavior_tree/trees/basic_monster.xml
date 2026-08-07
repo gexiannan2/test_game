@@ -1,0 +1,15 @@
+<root BTCPP_format="4" main_tree_to_execute="BasicMonster">
+  <BehaviorTree ID="BasicMonster">
+    <Fallback>
+      <Sequence>
+        <IsTargetInAttackRange/>
+        <AttackTarget/>
+      </Sequence>
+      <Sequence>
+        <AcquireTarget/>
+        <ChaseTarget/>
+      </Sequence>
+      <Idle/>
+    </Fallback>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,20 @@
+# CMake in-source build 产物
+/CMakeCache.txt
+/CMakeFiles/
+/Makefile
+/cmake_install.cmake
+/CTestTestfile.cmake
+/CMakeScripts/
+/compile_commands.json
+*.o
+
+# 编译输出
+/bin/*
+!/bin/.gitkeep
+/lib/*.so
+
+# WSL / 临时文件
+*~
+*.swp
+.DS_Store
+
