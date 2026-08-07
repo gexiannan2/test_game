@@ -1,0 +1,16 @@
+# IDE state
+/.vs/
+
+# Out-of-source CMake output
+/out/
+/bin/
+
+# Accidental in-source CMake output
+/CMakeCache.txt
+/CMakeFiles/
+/cmake_install.cmake
+/Makefile
+/src/gameserver/ai/CMakeFiles/
+/src/gameserver/ai/cmake_install.cmake
+/src/gameserver/ai/Makefile
+/src/gameserver/ai/libgame_monster_ai.a
