@@ -11,13 +11,12 @@
 #   ├── lib/                  libprotobufd.so*
 #   └── bin/                  编译产物输出目录
 #
-# WSL 构建命令 (in-source build):
+# WSL 构建命令（必须 out-of-source，禁止在源码根目录生成 CMakeCache.txt）:
 #   cd <project_root>
-#   cmake .                       # 生成 Makefile (首次或改 CMakeLists 后)
-#   make -j$(nproc)               # 编译全部
-#   make svc_game_3d_server       # 只编译 server
-#   make clean                    # 清理 .o (保留 Makefile)
-#   # 彻底清理: rm -f Makefile cmake_install.cmake CMakeCache.txt && rm -rf CMakeFiles
+#   cmake --preset linux-debug
+#   cmake --build --preset linux-debug -j$(nproc)
+#   cmake --build --preset linux-debug --target svc_game_3d_server -j$(nproc)
+#   cmake --build --preset linux-debug --target clean
 #   # 产物在 bin/ 下
 
 cmake_minimum_required(VERSION 3.21.0)
@@ -44,6 +43,7 @@ message(STATUS ">>> Build Type: ${CMAKE_BUILD_TYPE}")
 set(SRC_DIR          "${CMAKE_SOURCE_DIR}/src")
 set(ZRPC_DIR         "${CMAKE_SOURCE_DIR}/third_party/zrpc")
 set(JOLT_DIR         "${CMAKE_SOURCE_DIR}/third_party/joltphysics")
+set(NAVMESH_DIR      "${CMAKE_SOURCE_DIR}/third_party/navmesh")
 set(PROTO_GEN_DIR    "${CMAKE_SOURCE_DIR}/protobuf/protos/c++")
 set(PROTO_LUA_DIR    "${CMAKE_SOURCE_DIR}/protobuf/protos/lua")
 
@@ -160,6 +160,41 @@ target_compile_options(jolt_physics PRIVATE -w -march=native)
 # 不定义 JPH_ENABLE_ASSERTS: Release 模式靠 CMake 的 NDEBUG 自动关闭 JPH_DEBUG → 断言全关
 
 # ============================================================================
+# 2b. NavMesh/Detour 运行时 OBJECT 库
+#     源码直接编入游戏服，不生成独立 .so。Recast 烘焙、Crowd 和 TileCache
+#     不属于当前服务器运行时依赖，后续按功能单独启用。
+# ============================================================================
+add_library(navmesh OBJECT
+    "${CMAKE_SOURCE_DIR}/third_party/3d_nav.cpp"
+    "${CMAKE_SOURCE_DIR}/third_party/3d_height_map.cpp"
+    "${NAVMESH_DIR}/nav/navigation_mesh_handle.cpp"
+    "${NAVMESH_DIR}/nav/DetourAlloc.cpp"
+    "${NAVMESH_DIR}/nav/DetourAssert.cpp"
+    "${NAVMESH_DIR}/nav/DetourCommon.cpp"
+    "${NAVMESH_DIR}/nav/DetourNavMesh.cpp"
+    "${NAVMESH_DIR}/nav/DetourNavMeshQuery.cpp"
+    "${NAVMESH_DIR}/nav/DetourNode.cpp"
+)
+target_include_directories(navmesh
+    PUBLIC
+        "${CMAKE_SOURCE_DIR}/third_party"
+    PRIVATE
+        "${NAVMESH_DIR}/nav"
+        "${NAVMESH_DIR}/depend"
+        "${NAVMESH_DIR}/depend/g3dlite"
+)
+target_compile_features(navmesh PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_definitions(navmesh PRIVATE
+        _CRT_SECURE_NO_WARNINGS
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
+else()
+    target_compile_options(navmesh PRIVATE -w -fpermissive)
+endif()
+
+# ============================================================================
 # 3. protobuf 生成代码 OBJECT 库
 # ============================================================================
 add_library(game_proto OBJECT
@@ -215,7 +250,7 @@ add_executable(svc_game_3d_server
 )
 target_include_directories(svc_game_3d_server PRIVATE ${INC_DIRS})
 target_link_directories(svc_game_3d_server PRIVATE ${PROTOBUF_LINK_DIRS})
-target_link_libraries(svc_game_3d_server PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_server PRIVATE navmesh jolt_physics ${PROTOBUF_LIB} pthread)
 target_link_libraries(svc_game_3d_server PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_server gen_proto_lookup)
 target_link_libraries(svc_game_3d_server PRIVATE mongo)
@@ -247,6 +282,7 @@ add_executable(svc_game_3d_test
     "${SRC_DIR}/gameserver/tests/map_system_test.cc"
     "${SRC_DIR}/gameserver/tests/math_test.cc"
     "${SRC_DIR}/gameserver/tests/monster_ai_system_test.cc"
+    "${SRC_DIR}/gameserver/tests/nav_system_test.cc"
     "${SRC_DIR}/gameserver/tests/edge_case_test.cc"
     "${SRC_DIR}/gameserver/tests/login_aoi_churn_test.cc"
     "${SRC_DIR}/gameserver/tests/aoi_multilevel_test.cc"
@@ -273,7 +309,7 @@ target_include_directories(svc_game_3d_test PRIVATE ${INC_DIRS})
 set_target_properties(svc_game_3d_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_test PRIVATE -fpermissive -w -march=native)
-target_link_libraries(svc_game_3d_test PRIVATE jolt_physics pthread)
+target_link_libraries(svc_game_3d_test PRIVATE navmesh jolt_physics pthread)
 target_link_libraries(svc_game_3d_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_test gen_proto_lookup)
 target_link_directories(svc_game_3d_test PRIVATE ${PROTOBUF_LINK_DIRS})

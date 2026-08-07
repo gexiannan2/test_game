@@ -1,11 +1,10 @@
 // Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
-#include "navigation_mesh_handle.h"	
-#include "navigation.h"
-#include "resmgr/resmgr.h"
+#include "navigation_mesh_handle.h"
 
-#include "math/lmath.h"
-#include "e996_capi_bf.h"
+#include <algorithm>
+#include <filesystem>
+#include <memory>
 
 namespace KBEngine{	
 
@@ -591,7 +590,7 @@ int NavMeshHandle::GetHeight(int layer, const Position3D& pos, float& height)
 							"[GetHeight] poly=%d ref=%d tri=%d/%d q=(%.2f,%.2f,%.2f) h=%.4f",
 							(int)ip, (int)query.bestRef, j, (int)pd->triCount,
 							spos[0], spos[1], spos[2], h);
-						e996_log_info("{}", buf);
+						DEBUG_MSG(fmt::format("{}\n", buf));
 						break;
 					}
 				}
@@ -605,46 +604,41 @@ int NavMeshHandle::GetHeight(int layer, const Position3D& pos, float& height)
 //-------------------------------------------------------------------------------------
 NavigationHandle* NavMeshHandle::create(std::string resPath, const std::map< int, std::string >& params)
 {
-	if(resPath == "")
+	if(resPath.empty())
 		return NULL;
-	
-	NavMeshHandle* pNavMeshHandle = NULL;
 
-	std::string path = resPath;
-	path = Resmgr::getSingleton().matchPath(path);
-	if(path.size() == 0)
-	{
-		// 如果 Resmgr 未初始化（无搜索路径），直接用传入的原始路径
-		path = resPath;
-	}
-	wchar_t* wpath = strutil::char2wchar(path.c_str());
-	std::wstring wspath = wpath;
-	free(wpath);
+	NavMeshHandle* pNavMeshHandle = NULL;
+	const std::filesystem::path base_path(resPath);
 
 	if(params.size() == 0)
 	{
-		std::vector<std::wstring> results;
-		Resmgr::getSingleton().listPathRes(wspath, L"navmesh", results);
-
-		if(results.size() == 0)
+		std::error_code error;
+		std::vector<std::filesystem::path> results;
+		for (std::filesystem::directory_iterator iterator(base_path, error), end;
+			 !error && iterator != end;
+			 iterator.increment(error))
 		{
-			ERROR_MSG(fmt::format("NavMeshHandle::create: path({}) not found navmesh.!\n", 
-				Resmgr::getSingleton().matchRes(path)));
+			if (iterator->is_regular_file(error) &&
+				iterator->path().extension() == ".navmesh")
+			{
+				results.push_back(iterator->path());
+			}
+		}
+		std::sort(results.begin(), results.end());
 
+		if(error || results.empty())
+		{
+			ERROR_MSG(fmt::format(
+				"NavMeshHandle::create: path({}) contains no navmesh files.\n",
+				resPath));
 			return NULL;
 		}
 
 		pNavMeshHandle = new NavMeshHandle();
-		std::vector<std::wstring>::iterator iter = results.begin();
 		int layer = 0;
-		
-		for(; iter != results.end(); ++iter)
+		for(const auto& result : results)
 		{
-			char* cpath = strutil::wchar2char((*iter).c_str());
-			path = cpath;
-			free(cpath);
-			
-			_create(layer++, resPath, path, pNavMeshHandle);
+			_create(layer++, resPath, result.string(), pNavMeshHandle);
 		}
 	}
 	else
@@ -654,10 +648,13 @@ NavigationHandle* NavMeshHandle::create(std::string resPath, const std::map< int
 
 		for(; iter != params.end(); ++iter)
 		{
-			std::string fullpath = path + "/" + iter->second;
+			const std::filesystem::path configured_path(iter->second);
+			const std::filesystem::path fullpath = configured_path.is_absolute()
+				? configured_path
+				: base_path / configured_path;
 			DEBUG_MSG(fmt::format("NavMeshHandle::create: try open({}) layer={}\n",
-				fullpath, iter->first));
-			_create(iter->first, resPath, fullpath, pNavMeshHandle);
+				fullpath.string(), iter->first));
+			_create(iter->first, resPath, fullpath.string(), pNavMeshHandle);
 		}		
 	}
 	
@@ -680,8 +677,9 @@ dtNavMesh* tryReadNavmesh(uint8* data, size_t readsize, const std::string& res, 
 	{
 		if(showlog)
 		{
-			ERROR_MSG(fmt::format("NavMeshHandle::tryReadNavmesh: open({}), NavMeshSetHeader error!\n", 
-				Resmgr::getSingleton().matchRes(res)));
+			ERROR_MSG(fmt::format(
+				"NavMeshHandle::tryReadNavmesh: open({}), NavMeshSetHeader error!\n",
+				res));
 		}
 
 		return NULL;
@@ -696,7 +694,8 @@ dtNavMesh* tryReadNavmesh(uint8* data, size_t readsize, const std::string& res, 
 	
 	memcpy(&header, data, size);
 
-	if (header.version != NavMeshHandle::RCN_NAVMESH_VERSION)
+	if (header.version != NavMeshHandle::RCN_NAVMESH_VERSION ||
+		header.tileCount < 0)
 	{
 		if(showlog)
 		{
@@ -736,6 +735,13 @@ dtNavMesh* tryReadNavmesh(uint8* data, size_t readsize, const std::string& res, 
 
 	for (int i = 0; i < header.tileCount; ++i)
 	{
+		if (static_cast<size_t>(pos) + sizeof(NavMeshTileHeader) > readsize)
+		{
+			success = false;
+			status = DT_FAILURE | DT_INVALID_PARAM;
+			break;
+		}
+
 		NavMeshTileHeader tileHeader;
 		size = sizeof(NavMeshTileHeader);
 
@@ -743,10 +749,12 @@ dtNavMesh* tryReadNavmesh(uint8* data, size_t readsize, const std::string& res, 
 		pos += size;
 
 		size = tileHeader.dataSize;
-		if (!tileHeader.tileRef || !tileHeader.dataSize)
+		if (!tileHeader.tileRef ||
+			tileHeader.dataSize <= 0 ||
+			static_cast<size_t>(pos) + static_cast<size_t>(tileHeader.dataSize) > readsize)
 		{
 			success = false;
-			status = DT_FAILURE + DT_INVALID_PARAM;
+			status = DT_FAILURE | DT_INVALID_PARAM;
 			break;
 		}
 		
@@ -770,6 +778,7 @@ dtNavMesh* tryReadNavmesh(uint8* data, size_t readsize, const std::string& res, 
 
 		if (dtStatusFailed(status))
 		{
+			dtFree(tileData);
 			success = false;
 			break;
 		}
@@ -792,63 +801,71 @@ dtNavMesh* tryReadNavmesh(uint8* data, size_t readsize, const std::string& res, 
 bool NavMeshHandle::_create(int layer, const std::string& resPath, const std::string& res, NavMeshHandle* pNavMeshHandle)
 {
 	KBE_ASSERT(pNavMeshHandle);
-	FILE* fp = fopen(res.c_str(), "rb");
+	std::unique_ptr<FILE, decltype(&fclose)> fp(fopen(res.c_str(), "rb"), &fclose);
 	if (!fp)
 	{
 		ERROR_MSG(fmt::format("NavMeshHandle::_create: fopen failed path=({})\n", res));
-
 		return false;
 	}
 
 	DEBUG_MSG(fmt::format("NavMeshHandle::_create: ({}), layer={}\n", 
 		res, layer));
 
-	fseek(fp, 0, SEEK_END); 
-	size_t flen = ftell(fp); 
-	fseek(fp, 0, SEEK_SET); 
-
-	uint8* data = new uint8[flen];
-	if(data == NULL)
+	if (fseek(fp.get(), 0, SEEK_END) != 0)
 	{
-		ERROR_MSG(fmt::format("NavMeshHandle::create: open({}), memory(size={}) error!\n", 
-			Resmgr::getSingleton().matchRes(res), flen));
-
-		fclose(fp);
-		SAFE_RELEASE_ARRAY(data);
+		ERROR_MSG(fmt::format("NavMeshHandle::create: seek failed for ({}).\n", res));
 		return false;
 	}
 
-	size_t readsize = fread(data, 1, flen, fp);
-	if(readsize != flen)
+	const long file_length = ftell(fp.get());
+	if (file_length <= 0 || fseek(fp.get(), 0, SEEK_SET) != 0)
 	{
-		ERROR_MSG(fmt::format("NavMeshHandle::create: open({}), read(size={} != {}) error!\n", 
-			Resmgr::getSingleton().matchRes(res), readsize, flen));
-
-		fclose(fp);
-		SAFE_RELEASE_ARRAY(data);
+		ERROR_MSG(fmt::format("NavMeshHandle::create: invalid file size for ({}).\n", res));
 		return false;
 	}
 
-	dtNavMesh* mesh = tryReadNavmesh<NavMeshSetHeader>(data, readsize, res, false);
+	const size_t flen = static_cast<size_t>(file_length);
+	std::vector<uint8> data(flen);
+	const size_t readsize = fread(data.data(), 1, flen, fp.get());
+	if (readsize != flen)
+	{
+		ERROR_MSG(fmt::format(
+			"NavMeshHandle::create: open({}), read(size={} != {}) error!\n",
+			res, readsize, flen));
+		return false;
+	}
+
+	dtNavMesh* mesh = tryReadNavmesh<NavMeshSetHeader>(
+		data.data(), readsize, res, false);
 	
 	// 如果加载失败则尝试加载扩展格式
 	if(!mesh)
-		mesh = tryReadNavmesh<NavMeshSetHeaderEx>(data, readsize, res, true);
+		mesh = tryReadNavmesh<NavMeshSetHeaderEx>(
+			data.data(), readsize, res, true);
 
 	if (!mesh)
 	{
 		ERROR_MSG("NavMeshHandle::create: dtAllocNavMesh is failed!\n");
-		fclose(fp);
-		SAFE_RELEASE_ARRAY(data);
 		return false;
 	}
 
-	fclose(fp);
-	SAFE_RELEASE_ARRAY(data);
-
 	dtNavMeshQuery* pMavmeshQuery = dtAllocNavMeshQuery();
-
-	pMavmeshQuery->init(mesh, 1024);
+	if (!pMavmeshQuery)
+	{
+		dtFreeNavMesh(mesh);
+		ERROR_MSG("NavMeshHandle::create: dtAllocNavMeshQuery failed!\n");
+		return false;
+	}
+	const dtStatus query_status = pMavmeshQuery->init(mesh, 2048);
+	if (dtStatusFailed(query_status))
+	{
+		dtFreeNavMeshQuery(pMavmeshQuery);
+		dtFreeNavMesh(mesh);
+		ERROR_MSG(fmt::format(
+			"NavMeshHandle::create: query init failed({}).\n",
+			query_status));
+		return false;
+	}
 	pNavMeshHandle->resPath = resPath;
 	pNavMeshHandle->navmeshLayer[layer].pNavmeshQuery = pMavmeshQuery;
 	pNavMeshHandle->navmeshLayer[layer].pNavmesh = mesh;

@@ -24,8 +24,8 @@
               ".git",
               "CMakeCache.txt",
               "CMakeFiles",
-              "Makefile",
               "cmake_install.cmake",
+              "Makefile",
               "out",
               "bin",
               "src/server/mongo/_mongo_vendor"
@@ -52,8 +52,8 @@
               ".git",
               "CMakeCache.txt",
               "CMakeFiles",
-              "Makefile",
               "cmake_install.cmake",
+              "Makefile",
               "out",
               "bin",
               "src/server/mongo/_mongo_vendor"
