@@ -11,6 +11,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "MongoConfig.h"
@@ -177,7 +178,11 @@ bool GameServer::InitNavigation() {
   nav_system_ = std::make_unique<game::navigation::NavSystem>();
   const MapConfig* default_map = MapConfigSystem::Instance().GetFirstMap();
   std::size_t loaded_count = 0;
+  std::unordered_set<uint32_t> visited_map_ids;
   for (const uint32_t cfg_id : MapConfigSystem::Instance().GetAllCfgIds()) {
+    if (!visited_map_ids.insert(cfg_id).second) {
+      continue;
+    }
     const MapConfig* config = MapConfigSystem::Instance().Find(cfg_id);
     if (!config || config->res_id_.empty()) {
       LOG_ERROR << "NavMesh skipped invalid map config cfg_id=" << cfg_id;
@@ -219,7 +224,11 @@ bool GameServer::InitNavigation() {
 
   height_map_system_ = std::make_unique<game::navigation::HeightMapSystem>();
   std::size_t height_map_count = 0;
+  visited_map_ids.clear();
   for (const uint32_t cfg_id : MapConfigSystem::Instance().GetAllCfgIds()) {
+    if (!visited_map_ids.insert(cfg_id).second) {
+      continue;
+    }
     const MapConfig* config = MapConfigSystem::Instance().Find(cfg_id);
     if (!config || config->res_id_.empty()) {
       continue;
