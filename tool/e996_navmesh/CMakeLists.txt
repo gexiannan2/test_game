@@ -21,7 +21,8 @@ if(NOT MSVC)
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g" CACHE STRING "CXX debug flags" FORCE)
     endif()
 endif()
-set(NAVIGATION_LIB_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Bin/lib")
+# 构建产物留在构建目录，避免编译时覆盖仓库内文件。
+set(NAVIGATION_LIB_OUTPUT_DIR "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${NAVIGATION_LIB_OUTPUT_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${NAVIGATION_LIB_OUTPUT_DIR}")
 if(NOT MSVC)
@@ -48,7 +49,6 @@ set(NAVIGATION_ROOT_SRCS
     navigation.cpp
     navigation_handle.cpp
     navigation_mesh_handle.cpp
-    e996_capi_nav.cpp
     Recast.cpp
     RecastAlloc.cpp
     RecastArea.cpp
@@ -61,6 +61,11 @@ set(NAVIGATION_ROOT_SRCS
     RecastRasterization.cpp
     RecastRegion.cpp
 )
+
+# C API 头文件属于可选兄弟工程，缺失时不影响烘焙与查询工具。
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../e996_capi/e996_capi_nav.h")
+    list(APPEND NAVIGATION_ROOT_SRCS e996_capi_nav.cpp)
+endif()
 
 set(NAVIGATION_DEP_SRCS
     depend/common/common.cpp
@@ -111,13 +116,18 @@ add_executable(navmesh_path_compare tools/navmesh_path_compare.cpp)
 target_include_directories(navmesh_path_compare PRIVATE .)
 target_link_libraries(navmesh_path_compare PRIVATE navigation)
 
-add_executable(navmesh_triangle_path_demo tools/navmesh_triangle_path_demo.cpp)
-target_include_directories(navmesh_triangle_path_demo PRIVATE .)
-target_link_libraries(navmesh_triangle_path_demo PRIVATE navigation)
+# 这两个历史示例并非所有源码包都包含，存在时才创建目标。
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/navmesh_triangle_path_demo.cpp")
+    add_executable(navmesh_triangle_path_demo tools/navmesh_triangle_path_demo.cpp)
+    target_include_directories(navmesh_triangle_path_demo PRIVATE .)
+    target_link_libraries(navmesh_triangle_path_demo PRIVATE navigation)
+endif()
 
-add_executable(navmesh_smooth_path_demo tools/navmesh_smooth_path_demo.cpp)
-target_include_directories(navmesh_smooth_path_demo PRIVATE .)
-target_link_libraries(navmesh_smooth_path_demo PRIVATE navigation)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/navmesh_smooth_path_demo.cpp")
+    add_executable(navmesh_smooth_path_demo tools/navmesh_smooth_path_demo.cpp)
+    target_include_directories(navmesh_smooth_path_demo PRIVATE .)
+    target_link_libraries(navmesh_smooth_path_demo PRIVATE navigation)
+endif()
 
 add_executable(navmesh_export_json tools/navmesh_export_json.cpp)
 target_include_directories(navmesh_export_json PRIVATE .)

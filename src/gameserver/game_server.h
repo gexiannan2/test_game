@@ -27,6 +27,11 @@ namespace mongo {
 class PlayerMongoStorage;
 }  // namespace mongo
 
+namespace game::navigation {
+class HeightMapSystem;
+class NavSystem;
+}  // namespace game::navigation
+
 // 游戏服编排：TCP 收发包、Handler 分发、WorldSystem/AoiViewBridge 生命周期
 // 继承 enable_shared_from_this：所有跨线程 lambda 通过 weak_ptr 捕获
 class GameServer : public std::enable_shared_from_this<GameServer> {
@@ -39,7 +44,7 @@ class GameServer : public std::enable_shared_from_this<GameServer> {
   ~GameServer();
 
   void Start();
-  bool ListenOk() const { return !listen_failed_; }
+  bool ListenOk() const { return !listen_failed_ && !startup_failed_; }
   void Loop();
   void Stop();
 
@@ -97,6 +102,17 @@ class GameServer : public std::enable_shared_from_this<GameServer> {
   AoiViewBridge* GetAoiBridge() { return aoi_bridge_.get(); }
   MapViewBridge* GetMapBridge() { return map_bridge_.get(); }
   JoltServer* GetJoltServer() { return jolt_server_.get(); }
+  game::navigation::NavSystem* GetNavSystem() { return nav_system_.get(); }
+  game::navigation::HeightMapSystem* GetHeightMapSystem() {
+    return height_map_system_.get();
+  }
+  bool NavigationEnabled() const { return navigation_enabled_; }
+  bool HeightMapValidationEnabled() const {
+    return height_map_validation_enabled_;
+  }
+  float NavmeshMaxHorizontalError() const {
+    return navmesh_max_horizontal_error_;
+  }
   PlayerPersistSystem* GetPlayerPersist() { return player_persist_.get(); }
   mongo::PlayerMongoStorage* GetPlayerStorage() { return player_storage_.get(); }
 
@@ -120,6 +136,7 @@ class GameServer : public std::enable_shared_from_this<GameServer> {
       uint32_t msg_id) const;
 
   void LoadConfigs();
+  bool InitNavigation();
   void InitWorldAndAoi();
   void RegisterAllHandlers();
   void InitMongoIfEnabled();
@@ -136,6 +153,7 @@ class GameServer : public std::enable_shared_from_this<GameServer> {
   std::string ip_;
   int port_ = 0;
   bool listen_failed_ = false;
+  bool startup_failed_ = false;
   std::unordered_map<uint32_t, IHandler*> handlers_;
   std::unordered_set<std::unique_ptr<IHandler>> handler_owners_;
   std::unordered_map<
@@ -149,6 +167,11 @@ class GameServer : public std::enable_shared_from_this<GameServer> {
   std::unique_ptr<AoiViewBridge> aoi_bridge_;
   std::unique_ptr<MapViewBridge> map_bridge_;
   std::unique_ptr<JoltServer> jolt_server_;
+  std::unique_ptr<game::navigation::NavSystem> nav_system_;
+  std::unique_ptr<game::navigation::HeightMapSystem> height_map_system_;
+  bool navigation_enabled_ = true;
+  bool height_map_validation_enabled_ = false;
+  float navmesh_max_horizontal_error_ = 0.5f;
 
   std::unique_ptr<mongo::PlayerMongoStorage> player_storage_;
   std::unique_ptr<PlayerPersistSystem> player_persist_;

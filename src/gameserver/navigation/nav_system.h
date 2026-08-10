@@ -89,6 +89,14 @@ struct ReachabilityResult
     NavPosition position{};
 };
 
+struct PositionCheckResult
+{
+    NavStatus status = NavStatus::query_failed;
+    bool valid = false;
+    NavPosition nearest_position{};
+    float horizontal_distance = 0.0f;
+};
+
 enum class SlicedPathState : std::uint8_t
 {
     idle,
@@ -231,6 +239,13 @@ public:
         NavPosition& nearest,
         const NavPosition& extents = {2.0f, 4.0f, 2.0f}) const;
 
+    // 仅校验 XZ 是否贴近可行走面；Y 由高度图服务单独负责。
+    [[nodiscard]] PositionCheckResult check_pos(
+        map_id_t map_id,
+        const NavPosition& position,
+        float max_horizontal_distance = 0.5f,
+        const NavPosition& extents = {2.0f, 4.0f, 2.0f}) const;
+
     [[nodiscard]] NavStatus find_straight_path(
         map_id_t map_id,
         const NavPosition& from,
@@ -242,6 +257,14 @@ public:
         map_id_t map_id,
         const NavPosition& from,
         const NavPosition& to,
+        const NavQueryOptions& options = {}) const;
+
+    // 玩家位置包专用：严格检查本次直线移动，不允许碰墙后绕路放行。
+    [[nodiscard]] ReachabilityResult validate_direct_move(
+        map_id_t map_id,
+        const NavPosition& from,
+        const NavPosition& to,
+        float max_horizontal_distance = 0.5f,
         const NavQueryOptions& options = {}) const;
 
     // NavMesh poly height is auxiliary only. Authoritative actor Y comes from HeightMapSystem.

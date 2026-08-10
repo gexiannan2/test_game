@@ -32,6 +32,9 @@ class TransformComponent : public IComponent {
   bool     airborne_         = false; // 是否处于空中会话（跳/落/滑）
   uint64_t jump_client_time_ = 0;
 
+  // 高度图校验默认关闭；启用后记录上一次服务端选中的地形层。
+  int8_t nav_height_layer_ = -1;
+
   void ResetAirState() {
     jump_id_ = 0;
     jump_op_ = 0;

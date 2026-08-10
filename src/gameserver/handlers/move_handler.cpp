@@ -1,11 +1,15 @@
 #include "handlers/move_handler.h"
 
+#include <limits>
+
 #include "client_3d.pb.h"
 #include "client_common.pb.h"
 #include "ecs/components/connection_component.h"
+#include "ecs/components/map_component.h"
 #include "ecs/components/role_component.h"
 #include "ecs/components/transform_component.h"
 #include "game_server.h"
+#include "navigation/nav_system.h"
 #include "protocol/pack_flags.h"
 #include "server_constants.h"
 #include "utils/entity_util.h"
@@ -41,6 +45,23 @@ bool IsAirLocomotionStatus(int32_t status) {
          status == ::MOVE_STATUS_SLIDE;
 }
 
+int32_t NavErrorCode(game::navigation::NavStatus status) {
+  using game::navigation::NavStatus;
+  switch (status) {
+    case NavStatus::navmesh_not_loaded:
+    case NavStatus::heightmap_not_loaded:
+    case NavStatus::layer_not_found:
+      return server::kMoveErrNavUnavailable;
+    case NavStatus::nearest_poly_not_found:
+    case NavStatus::path_not_found:
+    case NavStatus::out_of_range:
+    case NavStatus::height_mismatch:
+      return server::kMoveErrNavRejected;
+    default:
+      return server::kMoveErrFailed;
+  }
+}
+
 }  // namespace
 
 void MoveHandler::Handle(const ::zrpc::TcpConnectionPtr& conn,
@@ -60,6 +81,13 @@ void MoveHandler::Handle(const ::zrpc::TcpConnectionPtr& conn,
 
   auto req_ptr = std::static_pointer_cast<::cli_3d_move_req>(req);
   if (!req_ptr) {
+    SendMoveRes(server_, conn, entity, 0, server::kMoveErrFailed);
+    return;
+  }
+
+  if (!req_ptr->has_move() || !req_ptr->move().has_pos()) {
+    LOG_WARN << "move rejected: missing move or position entity="
+             << entity->GetId();
     SendMoveRes(server_, conn, entity, 0, server::kMoveErrFailed);
     return;
   }
@@ -104,6 +132,76 @@ void MoveHandler::Handle(const ::zrpc::TcpConnectionPtr& conn,
       !game_util::Vec3Finite(vel)) {
     SendMoveRes(server_, conn, entity, m.status(), server::kMoveErrFailed);
     return;
+  }
+
+  if (tfm == nullptr) {
+    LOG_ERROR << "move rejected: TransformComponent missing entity="
+              << entity->GetId();
+    SendMoveRes(server_, conn, entity, m.status(), server::kMoveErrFailed);
+    return;
+  }
+
+  if (server_->NavigationEnabled()) {
+    const auto* map = entity->GetComponent<MapComponent>();
+    auto* navigation = server_->GetNavSystem();
+    if (!map || map->map_cfg_id_ == 0 ||
+        map->map_cfg_id_ > std::numeric_limits<uint32_t>::max() ||
+        navigation == nullptr) {
+      LOG_ERROR << "move rejected: navigation context unavailable entity="
+                << entity->GetId();
+      SendMoveRes(server_, conn, entity, m.status(),
+                  server::kMoveErrNavUnavailable);
+      return;
+    }
+
+    const auto map_id = static_cast<game::navigation::map_id_t>(
+        map->map_cfg_id_);
+    const game::navigation::NavPosition from{
+        tfm->pos_.GetX(), tfm->pos_.GetY(), tfm->pos_.GetZ()};
+    game::navigation::NavPosition target{
+        pos.GetX(), from.y, pos.GetZ()};
+
+    game::navigation::NavStatus nav_status =
+        game::navigation::NavStatus::query_failed;
+    if (server_->HeightMapValidationEnabled()) {
+      auto* height_maps = server_->GetHeightMapSystem();
+      if (height_maps == nullptr) {
+        nav_status = game::navigation::NavStatus::heightmap_not_loaded;
+      } else {
+        target.y = pos.GetY();
+        const auto validation = navigation->validate_player_move(
+            *height_maps,
+            map_id,
+            from,
+            target,
+            tfm->nav_height_layer_,
+            from.y);
+        nav_status = validation.status;
+        if (nav_status == game::navigation::NavStatus::success) {
+          pos.SetY(validation.server_position.y);
+          tfm->nav_height_layer_ = validation.height_layer;
+        }
+      }
+    } else {
+      // 当前仅检查 XZ 与直线可通行性，客户端 Y 暂沿用原有流程。
+      nav_status = navigation
+                       ->validate_direct_move(
+                           map_id,
+                           from,
+                           target,
+                           server_->NavmeshMaxHorizontalError())
+                       .status;
+    }
+
+    if (nav_status != game::navigation::NavStatus::success) {
+      LOG_WARN << "move rejected by navigation entity=" << entity->GetId()
+               << " map_cfg_id=" << map_id
+               << " status=" << game::navigation::to_string(nav_status)
+               << " from=" << game_util::FormatVec3(tfm->pos_)
+               << " target=" << game_util::FormatVec3(pos);
+      SendMoveRes(server_, conn, entity, m.status(), NavErrorCode(nav_status));
+      return;
+    }
   }
 
   server::ClampToMap(server_->GetJoltServer(), pos);

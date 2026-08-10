@@ -1,5 +1,7 @@
 #include "test_harness.h"
 
+#include <filesystem>
+
 #include "navigation/nav_system.h"
 
 using game::navigation::FollowPath;
@@ -15,6 +17,26 @@ using game::navigation::SlicedPathState;
 
 GAME_TEST_SUITE(NavSystemTest);
 
+namespace {
+
+std::filesystem::path ProductionNavmeshPath() {
+  const std::filesystem::path candidates[] = {
+      "deps/map_res/1001.navmesh",
+      "../deps/map_res/1001.navmesh",
+      "../../deps/map_res/1001.navmesh",
+  };
+  std::error_code error;
+  for (const auto& candidate : candidates) {
+    if (std::filesystem::is_regular_file(candidate, error) && !error) {
+      return candidate;
+    }
+    error.clear();
+  }
+  return candidates[0];
+}
+
+}  // namespace
+
 GAME_TEST(NavSystemTest, MissingMapReturnsExplicitErrors) {
   NavSystem navigation;
   NavPath path;
@@ -29,6 +51,56 @@ GAME_TEST(NavSystemTest, MissingMapReturnsExplicitErrors) {
       101, NavPosition{}, NavPosition{1.0f, 0.0f, 1.0f});
   EXPECT_TRUE(reachable.status == NavStatus::navmesh_not_loaded);
   EXPECT_FALSE(reachable.reachable);
+
+  const auto position = navigation.check_pos(101, NavPosition{});
+  EXPECT_TRUE(position.status == NavStatus::navmesh_not_loaded);
+  EXPECT_FALSE(position.valid);
+
+  const auto direct = navigation.validate_direct_move(
+      101, NavPosition{}, NavPosition{1.0f, 0.0f, 1.0f});
+  EXPECT_TRUE(direct.status == NavStatus::navmesh_not_loaded);
+  EXPECT_FALSE(direct.reachable);
+}
+
+GAME_TEST(NavSystemTest, ProductionAssetCoversDefaultSpawn) {
+  NavSystem navigation;
+  const auto path = ProductionNavmeshPath();
+  EXPECT_TRUE(std::filesystem::is_regular_file(path));
+  EXPECT_TRUE(navigation.load_navmesh(1001, path) == NavStatus::success);
+
+  const NavPosition spawn{333.0f, 18.0f, 415.45f};
+  const auto checked = navigation.check_pos(1001, spawn);
+  EXPECT_TRUE(checked.status == NavStatus::success);
+  EXPECT_TRUE(checked.valid);
+  EXPECT_TRUE(checked.horizontal_distance <= 0.5f);
+
+  const auto direct = navigation.validate_direct_move(1001, spawn, spawn);
+  EXPECT_TRUE(direct.status == NavStatus::success);
+  EXPECT_TRUE(direct.reachable);
+}
+
+GAME_TEST(NavSystemTest, CheckPosRejectsInvalidTolerance) {
+  NavSystem navigation;
+  const auto checked = navigation.check_pos(
+      1001, NavPosition{333.0f, 18.0f, 415.45f}, -0.1f);
+  EXPECT_TRUE(checked.status == NavStatus::invalid_argument);
+  EXPECT_FALSE(checked.valid);
+}
+
+GAME_TEST(NavSystemTest, DirectMoveRejectsWallWithoutPathFallback) {
+  NavSystem navigation;
+  EXPECT_TRUE(navigation.load_navmesh(1001, ProductionNavmeshPath()) ==
+              NavStatus::success);
+
+  // 两点均来自 1001.navmesh 的可行走面，直线会在起点附近撞到边界。
+  const NavPosition start{347.550f, 4.358f, 244.017f};
+  const NavPosition end{343.717f, 30.208f, 607.683f};
+  EXPECT_TRUE(navigation.check_pos(1001, start, 0.1f).valid);
+  EXPECT_TRUE(navigation.check_pos(1001, end, 0.1f).valid);
+
+  const auto direct = navigation.validate_direct_move(1001, start, end, 0.1f);
+  EXPECT_TRUE(direct.status == NavStatus::path_not_found);
+  EXPECT_FALSE(direct.reachable);
 }
 
 GAME_TEST(NavSystemTest, SlicedQueryFailsWithoutLoadedMap) {

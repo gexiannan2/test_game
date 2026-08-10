@@ -7,6 +7,7 @@
 
 #include "PlayerMongoStorage.h"
 #include "ecs/entity/entity.h"
+#include "navigation/nav_system.h"
 #include "protocol/pack_codec.h"
 #include "protocol/pack_flags.h"
 #include "server_defaults.h"
@@ -41,6 +42,11 @@ GameServer::~GameServer() {
 
 void GameServer::Start() {
   LoadConfigs();
+  if (!InitNavigation()) {
+    startup_failed_ = true;
+    LOG_ERROR << "GameServer::Start aborted: navigation initialization failed";
+    return;
+  }
   InitWorldAndAoi();
   RegisterAllHandlers();
   InitMongoIfEnabled();

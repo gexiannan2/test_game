@@ -3,11 +3,15 @@
 #include "game_server.h"
 
 #include <cstdlib>
+#include <cmath>
 #include <cstring>
 #include <exception>
+#include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "MongoConfig.h"
 #include "PlayerMongoStorage.h"
@@ -25,6 +29,7 @@
 #include "handlers/jump_handler.h"
 #include "handlers/move_handler.h"
 #include "handlers/role_handler.h"
+#include "navigation/nav_system.h"
 #include "protocol/pack_flags.h"
 #include "server_defaults.h"
 #include "utils/map_util.h"
@@ -39,6 +44,72 @@ int EnvPositiveInt(const char* name, int def) {
   }
   const int n = std::atoi(v);
   return n > 0 ? n : def;
+}
+
+bool EnvBool(const char* name, bool def) {
+  const char* value = std::getenv(name);
+  if (!value || !*value) {
+    return def;
+  }
+  if (std::strcmp(value, "1") == 0 || std::strcmp(value, "true") == 0 ||
+      std::strcmp(value, "on") == 0) {
+    return true;
+  }
+  if (std::strcmp(value, "0") == 0 || std::strcmp(value, "false") == 0 ||
+      std::strcmp(value, "off") == 0) {
+    return false;
+  }
+  LOG_WARN << "invalid boolean environment value, use default name=" << name
+           << " value=" << value;
+  return def;
+}
+
+float EnvPositiveFloat(const char* name, float def, float maximum) {
+  const char* value = std::getenv(name);
+  if (!value || !*value) {
+    return def;
+  }
+  char* end = nullptr;
+  const float parsed = std::strtof(value, &end);
+  if (end == value || *end != '\0' || !std::isfinite(parsed) ||
+      parsed <= 0.0f || parsed > maximum) {
+    LOG_WARN << "invalid positive float environment value, use default name="
+             << name << " value=" << value;
+    return def;
+  }
+  return parsed;
+}
+
+std::filesystem::path ResolveNavigationResource(
+    const char* explicit_file_env,
+    const char* directory_env,
+    const std::string& res_id,
+    const char* extension,
+    bool allow_explicit_file) {
+  if (allow_explicit_file) {
+    if (const char* file = std::getenv(explicit_file_env); file && *file) {
+      return std::filesystem::path(file);
+    }
+  }
+
+  const std::string filename = res_id + extension;
+  if (const char* directory = std::getenv(directory_env);
+      directory && *directory) {
+    return std::filesystem::path(directory) / filename;
+  }
+
+  const std::vector<std::filesystem::path> candidates = {
+      std::filesystem::path("deps/map_res") / filename,
+      std::filesystem::path("../deps/map_res") / filename,
+  };
+  std::error_code error;
+  for (const auto& candidate : candidates) {
+    if (std::filesystem::is_regular_file(candidate, error) && !error) {
+      return candidate;
+    }
+    error.clear();
+  }
+  return candidates.front();
 }
 
 bool MongoEnabledByEnv() {
@@ -86,6 +157,93 @@ int GameServer::HeartbeatCheckIntervalSec() const {
 void GameServer::LoadConfigs() {
   MapConfigSystem::Instance().LoadDefaults();
   PlayerConfig::Instance().LoadDefaults();
+}
+
+bool GameServer::InitNavigation() {
+  navigation_enabled_ = EnvBool("GAME_NAVMESH_ENABLE", true);
+  height_map_validation_enabled_ =
+      EnvBool("GAME_HEIGHTMAP_VALIDATION_ENABLE", false);
+  navmesh_max_horizontal_error_ = EnvPositiveFloat(
+      "GAME_NAVMESH_MAX_HORIZONTAL_ERROR", 0.5f, 5.0f);
+
+  if (!navigation_enabled_) {
+    LOG_ERROR << "NavMesh validation is disabled by GAME_NAVMESH_ENABLE=0";
+    nav_system_.reset();
+    height_map_system_.reset();
+    height_map_validation_enabled_ = false;
+    return true;
+  }
+
+  nav_system_ = std::make_unique<game::navigation::NavSystem>();
+  const MapConfig* default_map = MapConfigSystem::Instance().GetFirstMap();
+  std::size_t loaded_count = 0;
+  for (const uint32_t cfg_id : MapConfigSystem::Instance().GetAllCfgIds()) {
+    const MapConfig* config = MapConfigSystem::Instance().Find(cfg_id);
+    if (!config || config->res_id_.empty()) {
+      LOG_ERROR << "NavMesh skipped invalid map config cfg_id=" << cfg_id;
+      continue;
+    }
+
+    const bool is_default = default_map && config->cfg_id_ == default_map->cfg_id_;
+    const auto path = ResolveNavigationResource(
+        "GAME_NAVMESH_FILE", "GAME_NAVMESH_DIR", config->res_id_,
+        ".navmesh", is_default);
+    const auto status = nav_system_->load_navmesh(config->cfg_id_, path);
+    if (status != game::navigation::NavStatus::success) {
+      LOG_WARN << "NavMesh load failed map_cfg_id=" << config->cfg_id_
+               << " path=" << path.string()
+               << " status=" << game::navigation::to_string(status);
+      continue;
+    }
+    ++loaded_count;
+    LOG_INFO << "NavMesh loaded map_cfg_id=" << config->cfg_id_
+             << " path=" << path.string();
+  }
+
+  const bool default_loaded =
+      default_map && nav_system_->is_loaded(default_map->cfg_id_);
+  if (!default_loaded && EnvBool("GAME_NAVMESH_REQUIRED", true)) {
+    LOG_ERROR << "required default-map NavMesh is unavailable";
+    return false;
+  }
+  LOG_INFO << "NavMesh initialization complete loaded_maps=" << loaded_count
+           << " max_horizontal_error=" << navmesh_max_horizontal_error_;
+
+  if (!height_map_validation_enabled_) {
+    // 高度图验证代码已接好，当前默认关闭；稳定后通过环境变量启用。
+    LOG_INFO << "height-map validation disabled "
+             << "(GAME_HEIGHTMAP_VALIDATION_ENABLE=0)";
+    height_map_system_.reset();
+    return true;
+  }
+
+  height_map_system_ = std::make_unique<game::navigation::HeightMapSystem>();
+  std::size_t height_map_count = 0;
+  for (const uint32_t cfg_id : MapConfigSystem::Instance().GetAllCfgIds()) {
+    const MapConfig* config = MapConfigSystem::Instance().Find(cfg_id);
+    if (!config || config->res_id_.empty()) {
+      continue;
+    }
+    const bool is_default = default_map && config->cfg_id_ == default_map->cfg_id_;
+    const auto path = ResolveNavigationResource(
+        "GAME_HEIGHTMAP_FILE", "GAME_HEIGHTMAP_DIR", config->res_id_,
+        ".hgt", is_default);
+    const auto status = height_map_system_->load(config->cfg_id_, path);
+    if (status != game::navigation::NavStatus::success) {
+      LOG_WARN << "height map load failed map_cfg_id=" << config->cfg_id_
+               << " path=" << path.string()
+               << " status=" << game::navigation::to_string(status);
+      continue;
+    }
+    ++height_map_count;
+  }
+  if (!default_map || !height_map_system_->is_loaded(default_map->cfg_id_)) {
+    LOG_ERROR << "height-map validation enabled but default resource missing";
+    return false;
+  }
+  LOG_INFO << "height-map initialization complete loaded_maps="
+           << height_map_count;
+  return true;
 }
 
 void GameServer::InitWorldAndAoi() {

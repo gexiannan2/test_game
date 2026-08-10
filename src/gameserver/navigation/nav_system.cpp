@@ -780,6 +780,41 @@ NavStatus NavSystem::find_nearest_position(
     return NavStatus::success;
 }
 
+PositionCheckResult NavSystem::check_pos(
+    map_id_t map_id,
+    const NavPosition& position,
+    float max_horizontal_distance,
+    const NavPosition& extents) const
+{
+    PositionCheckResult result;
+    result.nearest_position = position;
+    if (!finite_position(position) || !std::isfinite(max_horizontal_distance) ||
+        max_horizontal_distance < 0.0f || !valid_extents(extents))
+    {
+        result.status = NavStatus::invalid_argument;
+        return result;
+    }
+
+    result.status = find_nearest_position(
+        map_id, position, result.nearest_position, extents);
+    if (result.status != NavStatus::success)
+    {
+        return result;
+    }
+
+    const float delta_x = position.x - result.nearest_position.x;
+    const float delta_z = position.z - result.nearest_position.z;
+    result.horizontal_distance = std::hypot(delta_x, delta_z);
+    if (result.horizontal_distance > max_horizontal_distance)
+    {
+        result.status = NavStatus::out_of_range;
+        return result;
+    }
+
+    result.valid = true;
+    return result;
+}
+
 NavStatus NavSystem::find_straight_path(
     map_id_t map_id,
     const NavPosition& from,
@@ -895,6 +930,113 @@ ReachabilityResult NavSystem::validate_reachable(
     {
         result.position = detour.path.points.back();
     }
+    return result;
+}
+
+ReachabilityResult NavSystem::validate_direct_move(
+    map_id_t map_id,
+    const NavPosition& from,
+    const NavPosition& to,
+    float max_horizontal_distance,
+    const NavQueryOptions& options) const
+{
+    ReachabilityResult result;
+    result.position = from;
+    if (!finite_position(from) || !finite_position(to) ||
+        !std::isfinite(max_horizontal_distance) ||
+        max_horizontal_distance < 0.0f || !valid_query_options(options))
+    {
+        result.status = NavStatus::invalid_argument;
+        return result;
+    }
+
+    const Impl::MapEntry* entry = impl_->find_map(map_id);
+    if (entry == nullptr)
+    {
+        result.status = NavStatus::navmesh_not_loaded;
+        return result;
+    }
+    const auto* layer = Impl::find_layer(*entry);
+    if (layer == nullptr || layer->pNavmeshQuery == nullptr)
+    {
+        result.status = NavStatus::layer_not_found;
+        return result;
+    }
+
+    QueryEndpoints endpoints;
+    result.status = find_endpoints(
+        *layer->pNavmeshQuery,
+        entry->filter,
+        from,
+        to,
+        options.nearest_poly_extents,
+        endpoints);
+    if (result.status != NavStatus::success)
+    {
+        return result;
+    }
+
+    const float start_error = std::hypot(
+        from.x - endpoints.start.x, from.z - endpoints.start.z);
+    const float end_error = std::hypot(
+        to.x - endpoints.end.x, to.z - endpoints.end.z);
+    if (start_error > max_horizontal_distance ||
+        end_error > max_horizontal_distance)
+    {
+        result.status = NavStatus::out_of_range;
+        return result;
+    }
+
+    const auto start = to_array(endpoints.start);
+    const auto end = to_array(endpoints.end);
+    std::vector<dtPolyRef> visited(
+        static_cast<std::size_t>(options.max_path_polys));
+    int visited_count = 0;
+    float hit_fraction = 0.0f;
+    float hit_normal[3]{};
+    const dtStatus raycast_status = layer->pNavmeshQuery->raycast(
+        endpoints.start_ref,
+        start.data(),
+        end.data(),
+        &entry->filter,
+        &hit_fraction,
+        hit_normal,
+        visited.data(),
+        &visited_count,
+        options.max_path_polys);
+    if (dtStatusFailed(raycast_status) ||
+        dtStatusDetail(raycast_status, DT_BUFFER_TOO_SMALL))
+    {
+        result.status = NavStatus::query_failed;
+        return result;
+    }
+    if (hit_fraction < 1.0f)
+    {
+        result.status = NavStatus::path_not_found;
+        return result;
+    }
+
+    // 旧封装额外检查动态障碍物 AABB，补 Detour 同 polygon 内的射线盲区。
+    std::vector<::Position3D> legacy_hits;
+    const int legacy_status = entry->navmesh->raycast(
+        entry->layer,
+        ::Position3D(endpoints.start.x, endpoints.start.y, endpoints.start.z),
+        ::Position3D(endpoints.end.x, endpoints.end.y, endpoints.end.z),
+        legacy_hits);
+    if (legacy_status == 1)
+    {
+        result.status = NavStatus::path_not_found;
+        return result;
+    }
+    if (legacy_status != KBEngine::NavigationHandle::NAV_ERROR)
+    {
+        result.status = NavStatus::query_failed;
+        return result;
+    }
+
+    result.status = NavStatus::success;
+    result.reachable = true;
+    result.position = endpoints.end;
     return result;
 }
 
@@ -1496,8 +1638,11 @@ PlayerMoveValidation NavSystem::validate_player_move(
     PlayerMoveValidation result;
     result.server_position = from;
 
+    // NavMesh 阶段只按服务端当前高度选层，客户端 Y 交给高度图校验。
+    NavPosition navmesh_position = client_position;
+    navmesh_position.y = from.y;
     const ReachabilityResult reachable =
-        validate_reachable(map_id, from, client_position, options);
+        validate_direct_move(map_id, from, navmesh_position, 0.5f, options);
     if (reachable.status != NavStatus::success || !reachable.reachable)
     {
         result.status = reachable.status == NavStatus::success

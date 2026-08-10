@@ -53,5 +53,7 @@ inline constexpr int32_t kMoveErrOk            = 0;
 inline constexpr int32_t kMoveErrFailed        = 1;
 inline constexpr int32_t kMoveErrAirborne      = 2;  // 空中会话中禁止 move
 inline constexpr int32_t kMoveErrUseJumpProto  = 3;  // status 要求走 jump 协议
+inline constexpr int32_t kMoveErrNavUnavailable = 4; // 导航资源未就绪
+inline constexpr int32_t kMoveErrNavRejected   = 11; // 目标点或直线移动不可通行
 
 }  // namespace server
