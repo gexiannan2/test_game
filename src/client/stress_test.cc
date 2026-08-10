@@ -11,6 +11,7 @@
 //   move     进图后持续移动 + 心跳（AOI 跨格 appear/disappear）
 //   mixed    churn + move（推荐做 5000 人综合验证）
 //   badmove  进图后逐个发送越界/NaN/Inf 坐标，验证服务端钳制与拒绝响应
+//   navmesh  验证合法移动、离开导航面拒绝、拒绝后权威位置回滚
 //
 // 用法: svc_game_3d_stress_test <clients> <ip> <port> <mode> [uid_prefix] [uid_count]
 // 客户端分批从 0 爬到 N；每 2 秒打印业务统计 + 各 msg_id 收包计数。
@@ -21,6 +22,7 @@
 #include <any>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -39,6 +41,7 @@
 #include "protocol/pack_codec.h"
 #include "protocol/pack_flags.h"
 #include "common/init.h"
+#include "server_constants.h"
 #include "zrpc/base/buffer.h"
 #include "zrpc/base/logger.h"
 #include "zrpc/net/event_loop.h"
@@ -75,6 +78,9 @@ struct StressStats {
   // 移动
   std::atomic<int> move_sent{0};
   std::atomic<int> move_res_received{0};    // cli_3d_move_res
+  std::atomic<int> navmesh_completed{0};
+  std::atomic<int> navmesh_passed{0};
+  std::atomic<int> navmesh_failed{0};
 
   // 心跳/顶号
   std::atomic<int> heartbeat_sent{0};
@@ -140,6 +146,9 @@ struct StressStats {
               << " (+" << delta(move_sent, prev.move_sent) << ")"
               << "  res=" << move_res_received
               << " (+" << delta(move_res_received, prev.move_res_received) << ")"
+              << "\n  [navmesh]        completed=" << navmesh_completed
+              << "  passed=" << navmesh_passed
+              << "  failed=" << navmesh_failed
               << "\n  [heartbeat]      sent=" << heartbeat_sent
               << " (+" << delta(heartbeat_sent, prev.heartbeat_sent) << ")"
               << "  res=" << heartbeat_res_received
@@ -171,6 +180,9 @@ struct StressStats {
     dst->enter_map_received = enter_map_received.load();
     dst->move_sent = move_sent.load();
     dst->move_res_received = move_res_received.load();
+    dst->navmesh_completed = navmesh_completed.load();
+    dst->navmesh_passed = navmesh_passed.load();
+    dst->navmesh_failed = navmesh_failed.load();
     dst->heartbeat_sent = heartbeat_sent.load();
     dst->heartbeat_res_received = heartbeat_res_received.load();
     dst->kickoff_count = kickoff_count.load();
@@ -203,6 +215,9 @@ static bool g_kickoff_mode = false;
 static bool g_move_mode    = false;
 static bool g_mixed_mode   = false;
 static bool g_badmove_mode = false;
+static bool g_navmesh_mode = false;
+static int  g_expected_navmesh_clients = 0;
+static bool g_navmesh_timed_out = false;
 static int  g_uid_count    = 0;
 static std::string g_uid_prefix = "stress_";
 static int  g_move_interval_ms = 200;  // move 模式下移动间隔
@@ -221,8 +236,14 @@ struct ClientState {
   int      max_moves  = 3;
   int      hb_count   = 0;
   int      badmove_idx= -1;   // badmove 模式: 当前测试用例索引
+  int      navmesh_step = -1; // navmesh 模式: 0=合法点，1=导航面外
+  bool     navmesh_finished = false;
   float    cur_x      = 0.0f;
+  float    cur_y      = 0.0f;
   float    cur_z      = 0.0f;
+  float    authoritative_x = 0.0f;
+  float    authoritative_y = 0.0f;
+  float    authoritative_z = 0.0f;
 
   // uid: kickoff 模式下多个 client 共享同一个 uid 来触发顶号
   std::string uid;
@@ -412,14 +433,116 @@ void SendBadMove(const std::shared_ptr<TcpConnection>& conn,
     g_stats.move_sent++;
 }
 
+// ---- navmesh 模式：走真实移动协议，自动断言服务端导航验证结果 ----
+
+void SendNavmeshMove(const std::shared_ptr<TcpConnection>& conn,
+                     ClientState* st, int step) {
+  ::cli_3d_move_req req;
+  auto* move = req.mutable_move();
+  auto* pos = move->mutable_pos();
+  if (step == 0) {
+    // 首包使用服务端下发的权威位置，稳定覆盖 check_pos 成功路径。
+    pos->set_x(st->authoritative_x);
+    pos->set_y(st->authoritative_y);
+    pos->set_z(st->authoritative_z);
+  } else {
+    // 该点明确位于 1001.navmesh 边界外，必须被服务端拒绝。
+    pos->set_x(1000.0f);
+    pos->set_y(st->authoritative_y);
+    pos->set_z(1000.0f);
+  }
+
+  auto* rot = move->mutable_rot();
+  rot->set_x(0.0f); rot->set_y(0.0f); rot->set_z(0.0f); rot->set_w(1.0f);
+  auto* move_rot = move->mutable_move_rot();
+  move_rot->set_x(0.0f); move_rot->set_y(0.0f);
+  move_rot->set_z(0.0f); move_rot->set_w(1.0f);
+  auto* velocity = move->mutable_velocity();
+  velocity->set_x(0.0f); velocity->set_y(0.0f); velocity->set_z(0.0f);
+  move->set_status(0);
+
+  std::cout << "\n  [NAVMESH REQ] uid=" << st->uid
+            << " step=" << step << " pos=(" << pos->x() << ","
+            << pos->y() << "," << pos->z() << ")" << std::endl;
+  SendFrame(conn, proto_id("cli_3d_move_req"), req, st);
+  g_stats.move_sent++;
+}
+
+bool SameHorizontalPosition(const ::vec3& pos, const ClientState& st) {
+  constexpr float kTolerance = 0.001f;
+  return std::fabs(pos.x() - st.authoritative_x) <= kTolerance &&
+         std::fabs(pos.z() - st.authoritative_z) <= kTolerance;
+}
+
+void FinishNavmeshClient(EventLoop* loop, ClientState* st, bool passed,
+                         const char* reason) {
+  if (st->navmesh_finished) return;
+  st->navmesh_finished = true;
+  if (passed) {
+    g_stats.navmesh_passed++;
+  } else {
+    g_stats.navmesh_failed++;
+  }
+  const int completed = ++g_stats.navmesh_completed;
+  std::cout << "\n  [NAVMESH " << (passed ? "PASS" : "FAIL") << "] uid="
+            << st->uid << " reason=" << reason << " completed=" << completed
+            << "/" << g_expected_navmesh_clients << std::endl;
+  if (completed >= g_expected_navmesh_clients) {
+    loop->Quit();
+  }
+}
+
+void HandleNavmeshMoveRes(const std::shared_ptr<TcpConnection>& conn,
+                          const PackFrame& frame, ClientState* st,
+                          EventLoop* loop) {
+  ::cli_3d_move_res res;
+  if (!res.ParseFromString(frame.body)) {
+    g_stats.proto_decode_errors++;
+    FinishNavmeshClient(loop, st, false, "移动响应解析失败");
+    return;
+  }
+  if (!res.has_move() || !res.move().has_pos()) {
+    FinishNavmeshClient(loop, st, false, "移动响应缺少权威位置");
+    return;
+  }
+
+  const auto& pos = res.move().pos();
+  std::cout << "\n  [NAVMESH RES] uid=" << st->uid
+            << " step=" << st->navmesh_step
+            << " err_code=" << res.err_code() << " pos=(" << pos.x() << ","
+            << pos.y() << "," << pos.z() << ")" << std::endl;
+
+  if (st->navmesh_step == 0) {
+    if (res.err_code() != server::kMoveErrOk ||
+        !SameHorizontalPosition(pos, *st)) {
+      FinishNavmeshClient(loop, st, false,
+                          "合法导航位置未被接受或位置不一致");
+      return;
+    }
+    st->authoritative_x = pos.x();
+    st->authoritative_y = pos.y();
+    st->authoritative_z = pos.z();
+    st->navmesh_step = 1;
+    SendNavmeshMove(conn, st, st->navmesh_step);
+    return;
+  }
+
+  const bool rejected = res.err_code() == server::kMoveErrNavRejected;
+  const bool rolled_back = SameHorizontalPosition(pos, *st);
+  FinishNavmeshClient(
+      loop, st, rejected && rolled_back,
+      !rejected ? "导航面外目标未返回拒绝码"
+                : (!rolled_back ? "拒绝后服务端权威位置发生变化" : "验证通过"));
+}
+
 void SendHeartbeat(const std::shared_ptr<TcpConnection>& conn, ClientState* st) {
   ::cli_heart_beat_req req;
   SendFrame(conn, proto_id("cli_heart_beat_req"), req, st);
   g_stats.heartbeat_sent++;
 }
 
-void HandleFrame(const std::shared_ptr<TcpConnection>& conn, const PackFrame& frame,
-                 ClientState* st) {
+void HandleFrame(const std::shared_ptr<TcpConnection>& conn,
+                 const PackFrame& frame, ClientState* st, EventLoop* loop) {
   g_stats.NoteRecv(frame.msg_id);
   if (frame.msg_id == proto_id("cli_handshake_res")) {
     g_stats.handshakes_ok++;
@@ -483,9 +606,19 @@ void HandleFrame(const std::shared_ptr<TcpConnection>& conn, const PackFrame& fr
         g_stats.entered_game++;
         if (rsp.has_pos()) {
           st->cur_x = rsp.pos().x();
+          st->cur_y = rsp.pos().y();
           st->cur_z = rsp.pos().z();
+          st->authoritative_x = st->cur_x;
+          st->authoritative_y = st->cur_y;
+          st->authoritative_z = st->cur_z;
         }
-        if (g_badmove_mode) {
+        if (g_navmesh_mode) {
+          st->navmesh_step = 0;
+          std::cout << "\n===== NAVMESH MOVE TEST START"
+                    << " (uid=" << st->uid << " role_id=" << st->role_id
+                    << ") =====" << std::endl;
+          SendNavmeshMove(conn, st, st->navmesh_step);
+        } else if (g_badmove_mode) {
           st->badmove_idx = 0;
           std::cout << "\n===== BADMOVE TEST START"
                     << " (uid=" << st->uid << " role_id=" << st->role_id
@@ -511,7 +644,9 @@ void HandleFrame(const std::shared_ptr<TcpConnection>& conn, const PackFrame& fr
   } else if (frame.msg_id == proto_id("cli_3d_move_res")) {
       g_stats.move_res_received++;
       st->move_sent++;
-      if (g_badmove_mode) {
+      if (g_navmesh_mode) {
+        HandleNavmeshMoveRes(conn, frame, st, loop);
+      } else if (g_badmove_mode) {
         ::cli_3d_move_res res;
         if (res.ParseFromString(frame.body)) {
           PrintMoveRes(res, st->badmove_idx);
@@ -643,7 +778,7 @@ class StressClient {
     }
     try {
       ClientState st = std::any_cast<ClientState>(conn->GetContext());
-      for (const auto& frame : frames) HandleFrame(conn, frame, &st);
+      for (const auto& frame : frames) HandleFrame(conn, frame, &st, loop_);
 
       // 进游戏后启动心跳循环 (仅一次；进图时已发首包)
       if ((st.phase == Phase::kMoving || st.phase == Phase::kInGame) &&
@@ -693,6 +828,8 @@ int main(int argc, char** argv) {
   g_move_mode    = (mode == "move");
   g_mixed_mode   = (mode == "mixed");
   g_badmove_mode = (mode == "badmove");
+  g_navmesh_mode = (mode == "navmesh" || mode == "navmove");
+  g_expected_navmesh_clients = g_navmesh_mode ? clients : 0;
 
   std::cout << "svc_game_3d_stress_test -> " << ip << ":" << port
             << "  clients=" << clients << "  mode=" << mode;
@@ -703,7 +840,8 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
 
   std::cout << "modes: normal=在线心跳 | churn=频繁上下线 | move=高频移动 | "
-               "mixed=上下线+移动 | kickoff=顶号 | badmove=非法坐标测试"
+               "mixed=上下线+移动 | kickoff=顶号 | badmove=非法坐标测试 | "
+               "navmesh=导航移动自动验证"
             << std::endl;
 
   EventLoop loop;
@@ -727,6 +865,18 @@ int main(int argc, char** argv) {
 
   // 2 秒后开始打印统计，之后每 2 秒
   loop.RunAfter(2, false, [&loop]() { PrintStats(&loop); });
+  if (g_navmesh_mode) {
+    // 自动化测试必须有截止时间，避免登录或响应异常时永久阻塞。
+    loop.RunAfter(30, false, [&loop]() {
+      if (g_stats.navmesh_completed.load() < g_expected_navmesh_clients) {
+        g_navmesh_timed_out = true;
+        std::cerr << "\n[NAVMESH FAIL] 测试超时 completed="
+                  << g_stats.navmesh_completed.load() << "/"
+                  << g_expected_navmesh_clients << std::endl;
+        loop.Quit();
+      }
+    });
+  }
 
   std::cout << "ramp 0.." << (clients - 1) << " launching (batch=" << batch
             << ", staggered), stats every 2s..." << std::endl;
@@ -737,5 +887,16 @@ int main(int argc, char** argv) {
 #ifdef _WIN32
   WSACleanup();
 #endif
-  return 0;
+  if (!g_navmesh_mode) return 0;
+  const bool passed = !g_navmesh_timed_out &&
+                      g_stats.navmesh_failed.load() == 0 &&
+                      g_stats.navmesh_completed.load() ==
+                          g_expected_navmesh_clients;
+  std::cout << "\n===== NAVMESH MOVE TEST "
+            << (passed ? "PASSED" : "FAILED")
+            << " completed=" << g_stats.navmesh_completed.load()
+            << " passed=" << g_stats.navmesh_passed.load()
+            << " failed=" << g_stats.navmesh_failed.load()
+            << " =====" << std::endl;
+  return passed ? 0 : 1;
 }

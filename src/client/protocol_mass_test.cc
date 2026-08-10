@@ -222,7 +222,8 @@ class TestServer {
     bool Start(int port) {
         port_ = port;
         thread_ = std::thread([this] {
-            server_ = std::make_unique<GameServer>("127.0.0.1", port_);
+            // GameServer 注册回调时使用 weak_from_this，测试服必须由 shared_ptr 持有。
+            server_ = std::make_shared<GameServer>("127.0.0.1", port_);
             server_->Start();
             server_->Loop();
             server_.reset();
@@ -241,7 +242,7 @@ class TestServer {
 
  private:
     int port_ = 0;
-    std::unique_ptr<GameServer> server_;
+    std::shared_ptr<GameServer> server_;
     std::thread thread_;
 };
 
@@ -796,6 +797,12 @@ int RunMassProtocolTest(int n_clients) {
 
 int main(int argc, char** argv) {
     InitSignals();
+    // 本套件压测 AOI/连接生命周期，移动合法性由独立 NavMesh 用例覆盖。
+#ifdef _WIN32
+    _putenv_s("GAME_NAVMESH_ENABLE", "0");
+#else
+    setenv("GAME_NAVMESH_ENABLE", "0", 1);
+#endif
     // 大规模下关闭 INFO 发包日志，避免 I/O 淹没与 FD 压力
     zrpc::Logger::SetLogLevel(zrpc::Logger::WARN);
 #ifdef _WIN32

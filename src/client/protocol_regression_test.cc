@@ -87,7 +87,8 @@ class TestServer {
  public:
   bool Start(int port) {
     thread_ = std::thread([this, port] {
-      server_ = std::make_unique<GameServer>("127.0.0.1", port);
+      // GameServer 注册回调时使用 weak_from_this，测试服必须由 shared_ptr 持有。
+      server_ = std::make_shared<GameServer>("127.0.0.1", port);
       server_->Start();
       server_->Loop();
       server_.reset();
@@ -102,7 +103,7 @@ class TestServer {
   }
   GameServer* Get() { return server_.get(); }
  private:
-  std::unique_ptr<GameServer> server_;
+  std::shared_ptr<GameServer> server_;
   std::thread thread_;
 };
 
@@ -916,9 +917,13 @@ int main(int argc, char** argv) {
 #ifdef _WIN32
   _putenv_s("GAME_HEARTBEAT_TIMEOUT_SEC", "60");
   _putenv_s("GAME_HEARTBEAT_CHECK_INTERVAL_SEC", "5");
+  // 既有回归用例包含负坐标移动，不与 NavMesh 合法性测试耦合。
+  _putenv_s("GAME_NAVMESH_ENABLE", "0");
 #else
   setenv("GAME_HEARTBEAT_TIMEOUT_SEC", "60", 1);
   setenv("GAME_HEARTBEAT_CHECK_INTERVAL_SEC", "5", 1);
+  // 既有回归用例包含负坐标移动，不与 NavMesh 合法性测试耦合。
+  setenv("GAME_NAVMESH_ENABLE", "0", 1);
 #endif
   zrpc::Logger::SetLogLevel(zrpc::Logger::WARN);
 #ifdef _WIN32

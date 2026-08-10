@@ -4,6 +4,7 @@
 #include <google/protobuf/message.h>
 
 #include <atomic>
+#include <cmath>
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
@@ -223,16 +224,21 @@ class LocoClient {
   }
 
   int WaitMoveErr(int timeout_ms = 5000) {
+    ::cli_3d_move_res rsp;
+    return WaitMoveRes(&rsp, timeout_ms) ? rsp.err_code() : -1;
+  }
+
+  bool WaitMoveRes(::cli_3d_move_res* out, int timeout_ms = 5000) {
+    if (!out) return false;
     if (!msg_queue_->WaitFor(proto_id("cli_3d_move_res"), timeout_ms)) {
-      return -1;
+      return false;
     }
-    int err = -1;
+    bool parsed = false;
     for (auto& m : msg_queue_->Drain()) {
       if (m.msg_id != proto_id("cli_3d_move_res")) continue;
-      ::cli_3d_move_res rsp;
-      if (rsp.ParseFromString(m.body)) err = rsp.err_code();
+      if (out->ParseFromString(m.body)) parsed = true;
     }
-    return err;
+    return parsed;
   }
 
  private:
@@ -588,6 +594,43 @@ bool Test_JumpIdMismatch() {
   return g_failures == 0;
 }
 
+bool Test_NavmeshMoveValidation() {
+  g_failures = 0;
+  std::cout << "\n[Loco] NavmeshMoveValidation" << std::endl;
+  const int port = 23110;
+  TestServer server;
+  server.Start(port);
+  LocoClient c("127.0.0.1", port, "loco_navmesh_move");
+  c.Start();
+  LOC_CHECK(c.WaitInGame(), "enter game");
+  c.msg_queue()->Drain();
+
+  ::cli_3d_move_res accepted;
+  c.SendMove(kBornX, kBornY, kBornZ);
+  LOC_CHECK(c.WaitMoveRes(&accepted), "legal move response");
+  LOC_CHECK(accepted.err_code() == server::kMoveErrOk,
+            "legal NavMesh position accepted");
+  LOC_CHECK(accepted.has_move() && accepted.move().has_pos(),
+            "legal response contains authoritative position");
+
+  ::cli_3d_move_res rejected;
+  c.SendMove(1000.0f, kBornY, 1000.0f);
+  LOC_CHECK(c.WaitMoveRes(&rejected), "invalid move response");
+  LOC_CHECK(rejected.err_code() == server::kMoveErrNavRejected,
+            "off-NavMesh position rejected");
+  LOC_CHECK(rejected.has_move() && rejected.move().has_pos(),
+            "rejection contains authoritative position");
+  if (rejected.has_move() && rejected.move().has_pos()) {
+    LOC_CHECK(std::abs(rejected.move().pos().x() - kBornX) < 0.001f &&
+                  std::abs(rejected.move().pos().z() - kBornZ) < 0.001f,
+              "rejected packet does not change server position");
+  }
+
+  c.Stop();
+  server.Stop();
+  return g_failures == 0;
+}
+
 }  // namespace
 
 int main() {
@@ -612,10 +655,17 @@ int main() {
       {"AirJumpExhausted", Test_AirJumpExhausted},
       {"FallThenDoubleJump", Test_FallThenDoubleJump},
       {"JumpIdMismatch", Test_JumpIdMismatch},
+      {"NavmeshMoveValidation", Test_NavmeshMoveValidation},
   };
 
   int failed_cases = 0;
+  int executed_cases = 0;
+  const char* filter = std::getenv("LOCOMOTION_TEST_FILTER");
   for (auto& c : cases) {
+    if (filter && *filter && std::string(c.name).find(filter) == std::string::npos) {
+      continue;
+    }
+    ++executed_cases;
     if (!c.fn()) {
       std::cerr << "[CASE FAIL] " << c.name << std::endl;
       ++failed_cases;
@@ -624,7 +674,7 @@ int main() {
     }
   }
 
-  std::cout << "\n=== done: " << (sizeof(cases) / sizeof(cases[0]))
+  std::cout << "\n=== done: " << executed_cases
             << " cases, " << failed_cases << " failed ===" << std::endl;
   return failed_cases == 0 ? 0 : 1;
 }

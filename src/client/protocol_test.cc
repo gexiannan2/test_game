@@ -125,7 +125,8 @@ class TestServer {
     bool Start(int port) {
         port_ = port;
         thread_ = std::thread([this] {
-            server_ = std::make_unique<GameServer>("127.0.0.1", port_);
+            // GameServer 注册回调时使用 weak_from_this，测试服必须由 shared_ptr 持有。
+            server_ = std::make_shared<GameServer>("127.0.0.1", port_);
             server_->Start();
             server_->Loop();
             server_.reset();
@@ -144,7 +145,7 @@ class TestServer {
 
  private:
     int port_ = 0;
-    std::unique_ptr<GameServer> server_;
+    std::shared_ptr<GameServer> server_;
     std::thread thread_;
 };
 
@@ -741,8 +742,13 @@ bool Test_MoveNegativeCoordsAoiBroadcast() {
 int main(int argc, char** argv) {
     InitSignals();
 #ifdef _WIN32
+    // 本套件只验证 AOI 管线；导航拒绝由 locomotion 定向用例覆盖。
+    _putenv_s("GAME_NAVMESH_ENABLE", "0");
     WSADATA wsa_data{};
     if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) return 1;
+#else
+    // 本套件只验证 AOI 管线；导航拒绝由 locomotion 定向用例覆盖。
+    setenv("GAME_NAVMESH_ENABLE", "0", 1);
 #endif
 
     std::cout << "=== svc_game_3d_protocol_test ===" << std::endl;
