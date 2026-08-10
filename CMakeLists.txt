@@ -398,7 +398,7 @@ target_link_directories(svc_game_3d_protocol_test PRIVATE ${PROTOBUF_LINK_DIRS})
 set_target_properties(svc_game_3d_protocol_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_test PRIVATE -fpermissive -w -march=native)
-target_link_libraries(svc_game_3d_protocol_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_test PRIVATE navmesh jolt_physics ${PROTOBUF_LIB} pthread)
 target_link_libraries(svc_game_3d_protocol_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_test PRIVATE mongo)
@@ -448,7 +448,7 @@ target_link_directories(svc_game_3d_protocol_regression_test PRIVATE ${PROTOBUF_
 set_target_properties(svc_game_3d_protocol_regression_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_regression_test PRIVATE -fpermissive -w -march=native)
-target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE navmesh jolt_physics ${PROTOBUF_LIB} pthread)
 target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_regression_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_regression_test PRIVATE mongo)
@@ -498,7 +498,7 @@ target_link_directories(svc_game_3d_protocol_locomotion_test PRIVATE ${PROTOBUF_
 set_target_properties(svc_game_3d_protocol_locomotion_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_locomotion_test PRIVATE -fpermissive -w -march=native)
-target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE navmesh jolt_physics ${PROTOBUF_LIB} pthread)
 target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_locomotion_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_locomotion_test PRIVATE mongo)
@@ -548,7 +548,7 @@ target_link_directories(svc_game_3d_protocol_mass_test PRIVATE ${PROTOBUF_LINK_D
 set_target_properties(svc_game_3d_protocol_mass_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
 target_compile_options(svc_game_3d_protocol_mass_test PRIVATE -fpermissive -w -march=native)
-target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE jolt_physics ${PROTOBUF_LIB} pthread)
+target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE navmesh jolt_physics ${PROTOBUF_LIB} pthread)
 target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE game_monster_ai)
 add_dependencies(svc_game_3d_protocol_mass_test gen_proto_lookup)
 target_link_libraries(svc_game_3d_protocol_mass_test PRIVATE mongo)
