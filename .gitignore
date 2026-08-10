@@ -14,3 +14,4 @@
 /src/gameserver/ai/cmake_install.cmake
 /src/gameserver/ai/Makefile
 /src/gameserver/ai/libgame_monster_ai.a
+*.hgt

@@ -166,8 +166,8 @@ target_compile_options(jolt_physics PRIVATE -w -march=native)
 #     不属于当前服务器运行时依赖，后续按功能单独启用。
 # ============================================================================
 add_library(navmesh OBJECT
-    "${CMAKE_SOURCE_DIR}/third_party/3d_nav.cpp"
-    "${CMAKE_SOURCE_DIR}/third_party/3d_height_map.cpp"
+    "${SRC_DIR}/gameserver/navigation/nav_system.cpp"
+    "${SRC_DIR}/gameserver/navigation/height_map_system.cpp"
     "${NAVMESH_DIR}/nav/navigation_mesh_handle.cpp"
     "${NAVMESH_DIR}/nav/DetourAlloc.cpp"
     "${NAVMESH_DIR}/nav/DetourAssert.cpp"
@@ -179,6 +179,7 @@ add_library(navmesh OBJECT
 )
 target_include_directories(navmesh
     PUBLIC
+        "${SRC_DIR}/gameserver"
         "${CMAKE_SOURCE_DIR}/third_party"
     PRIVATE
         "${NAVMESH_DIR}/nav"

@@ -1,6 +1,6 @@
 #include "test_harness.h"
 
-#include "3d_nav.h"
+#include "navigation/nav_system.h"
 
 using game::navigation::FollowPath;
 using game::navigation::FollowState;
