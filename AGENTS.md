@@ -1,4 +1,12 @@
-# CODEBUDDY.md This file provides guidance to CodeBuddy when working with code in this repository.
+# AGENTS.md
+
+本文件是本仓库唯一的 AI 编程助手规则文件，适用于 **CodeBuddy、Cursor、VS Code、GitHub Copilot** 及其他支持 `AGENTS.md` 的 IDE / AI 编程助手。
+
+所有 AI 编程助手在分析、生成、修改或重构代码前，必须先读取并严格遵守本文件。
+
+> **安装位置**：将本文件命名为 `AGENTS.md`，放在仓库根目录。使用 IDE 时必须打开整个仓库根目录。
+>
+> 若某个 IDE 没有自动加载规则，在新会话第一句输入：`请先读取项目根目录下的 AGENTS.md，并在整个任务中严格遵守其中的规则。`
 
 > **Workspace root**: `C:\e996_proj-nav\` (WSL: `/mnt/c/e996_proj-nav/`).  
 > When opening this project in VS Code, use **File → Open Folder** and select `C:\e996_proj-nav\` as the workspace root to ensure the full `src/` C++ source tree is included.
@@ -40,7 +48,7 @@
 
 ## 复杂工程任务处理流程
 
-当用户要求分析复杂 C++ 工程、疑难 bug、core dump、编译错误、仓库级修改、工具调用或长链路任务时，CodeBuddy 必须按以下流程执行：
+当用户要求分析复杂 C++ 工程、疑难 bug、core dump、编译错误、仓库级修改、工具调用或长链路任务时，AI 编程助手必须按以下流程执行：
 
 1. 先不要直接修改代码。
 2. 先理解用户指定文件、相关文件和模块的职责。
@@ -97,9 +105,9 @@
 
 
 
-# CodeBuddy 项目代码规范
+# AI 编程助手项目代码规范
 
-> 本文件用于约束 CodeBuddy 在本项目中生成、修改、重构 C++ 代码时的代码风格。
+> 本文件用于约束 AI 编程助手在本项目中生成、修改、重构 C++ 代码时的代码风格。
 > 修改任何代码前，必须先读取并遵守本文件。
 > 如果生成结果违反本文件，必须重新生成。
 
@@ -109,7 +117,7 @@
 
 本项目代码风格以 **可读性、稳定性、低风险修改** 为第一优先级。
 
-CodeBuddy 在本项目中工作时，必须遵守以下原则：
+AI 编程助手在本项目中工作时，必须遵守以下原则：
 
 1. 不要为了减少行数压缩代码。
 2. 不要把多行代码改成单行代码。
@@ -862,7 +870,7 @@ DoSomething();         // 缺少一级缩进
 
 ## 11. 命名和接口修改约束
 
-CodeBuddy 修改代码时必须注意：
+AI 编程助手修改代码时必须注意：
 
 1. 不要随意修改已有函数名。
 2. 不要随意修改已有类名。
@@ -964,7 +972,7 @@ bool CheckPlayer(Player* player)
 
 ## 15. 禁止的代码格式
 
-CodeBuddy 绝对不能生成以下格式：
+AI 编程助手绝对不能生成以下格式：
 
 ```cpp
 if (x) return;
@@ -1027,7 +1035,7 @@ while (...)
 
 ## 16. 修改已有代码时的要求
 
-当用户要求修改某个函数或文件时，CodeBuddy 必须：
+当用户要求修改某个函数或文件时，AI 编程助手必须：
 
 1. 只修改与需求相关的代码。
 2. 保持原有业务逻辑不变，除非用户明确要求改变。
@@ -1044,7 +1052,7 @@ while (...)
 
 ## 17. C++ 服务器项目注意事项
 
-本项目偏 C++ 游戏服务器开发，CodeBuddy 生成代码时应额外注意：
+本项目偏 C++ 游戏服务器开发，AI 编程助手生成代码时应额外注意：
 
 1. 注意内存生命周期，避免野指针、悬空引用、重复释放。
 2. 注意容器迭代器失效。
@@ -1061,7 +1069,7 @@ while (...)
 
 ## 18. 生成代码前的自检清单
 
-CodeBuddy 每次输出 C++ 代码前，必须检查是否存在以下问题：
+AI 编程助手每次输出 C++ 代码前，必须检查是否存在以下问题：
 
 - 是否存在 `if (...) return ...;`
 - 是否存在 `if (...) continue;`
@@ -1089,7 +1097,7 @@ CodeBuddy 每次输出 C++ 代码前，必须检查是否存在以下问题：
 
 ## 19. 推荐配套 .clang-format
 
-如果项目根目录存在 `.clang-format`，CodeBuddy 生成代码时也必须遵守它。
+如果项目根目录存在 `.clang-format`，AI 编程助手生成代码时也必须遵守它。
 
 推荐配置如下：
 
@@ -1112,13 +1120,13 @@ ColumnLimit: 120
 
 ---
 
-## 20. 给 CodeBuddy 的强制执行指令
+## 20. 给 AI 编程助手的强制执行指令
 
 当用户要求生成或修改代码时，必须按照以下规则执行：
 
 ```text
-修改代码前，先读取项目根目录下的 codebuddy.md 和 .clang-format。
-所有生成和修改的 C++ 代码必须符合 codebuddy.md。
+修改代码前，先读取项目根目录下的 AGENTS.md 和 .clang-format。
+所有生成和修改的 C++ 代码必须符合 AGENTS.md。
 禁止生成单行 if / for / while。
 所有控制语句即使只有一行，也必须换行并使用花括号。
 左花括号必须独占一行。
