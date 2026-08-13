@@ -12,6 +12,7 @@
 | 文档 | 内容 |
 |------|------|
 | [architecture.md](architecture.md) | 分层、双索引、目录地图 |
+| [async-jolt-one-frame-pipeline.md](async-jolt-one-frame-pipeline.md) | 异步 Jolt：晚 1 帧双缓冲管线与 Apply 含义 |
 | [gameserver.md](gameserver.md) | Start / 连接 / 收包 / 心跳 / 发包 |
 | [file-matrix.md](file-matrix.md) | 源码文件职责矩阵 |
 | [constants.md](constants.md) | 常量与 ID 空间 |
