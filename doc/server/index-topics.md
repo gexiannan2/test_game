@@ -10,6 +10,7 @@
 | 某个协议包 | §4 |
 | 进图谁推谁 | §14 |
 | 移动跨格 | §15 |
+| 生产级服务器权威移动目标方案 | `authoritative-movement-design.md` |
 | 断线重连 | §16 |
 | AOI 内部结构 | §8 |
 | 组件何时挂 | §11 |
@@ -32,6 +33,7 @@
 - 编排：`game_server.cpp`  
 - 进图：`handlers/game_handler.cpp` → `world_system.cpp::EnterMap`  
 - 移动：`handlers/move_handler.cpp` → `MoveEntity`  
+- 权威移动目标设计：`authoritative-movement-design.md`  
 - 视野推包：`aoi_view_bridge.cpp` + `aoi_sector.cpp::AddReceiver/SwitchMonitor`  
 - 重连：`handlers/connection_handler.cpp`  
 - 协议号：`src/protocol/pack_flags.h`  

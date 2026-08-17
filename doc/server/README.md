@@ -12,6 +12,7 @@
 | 文档 | 内容 |
 |------|------|
 | [architecture.md](architecture.md) | 分层、双索引、目录地图 |
+| [authoritative-movement-design.md](authoritative-movement-design.md) | 3D 动作 RPG 生产级服务器权威移动目标方案 |
 | [gameserver.md](gameserver.md) | Start / 连接 / 收包 / 心跳 / 发包 |
 | [file-matrix.md](file-matrix.md) | 源码文件职责矩阵 |
 | [constants.md](constants.md) | 常量与 ID 空间 |
