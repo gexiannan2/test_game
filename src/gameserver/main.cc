@@ -157,8 +157,7 @@ int main(int argc, char** argv) {
     auto server = std::make_shared<GameServer>(ip, port);
     server->Start();
     if (!server->ListenOk()) {
-        std::cerr << "FATAL: server startup or listen failed on " << ip << ":"
-                  << port << std::endl;
+        std::cerr << "FATAL: failed to listen on " << ip << ":" << port << std::endl;
         async_log->Stop();
         return 1;
     }
