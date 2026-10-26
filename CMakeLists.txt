@@ -21,9 +21,39 @@
 
 cmake_minimum_required(VERSION 3.21.0)
 
+# ---------- 启用 ccache（在 project() 之前设置 launcher） ----------
+option(ENABLE_CCACHE "Enable ccache if available" ON)
+if(ENABLE_CCACHE)
+    find_program(CCACHE_PROGRAM ccache)
+    if(CCACHE_PROGRAM)
+        message(STATUS "ccache enabled: ${CCACHE_PROGRAM}")
+        set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    else()
+        message(STATUS "ccache requested but not found")
+    endif()
+endif()
 
 project(svc_game_3d LANGUAGES C CXX)
 
+# ---------- 链接器：优先用 mold，检测失败时保留默认链接器 ----------
+if(UNIX AND NOT APPLE)
+    find_program(MOLD_PROGRAM mold)
+    if(MOLD_PROGRAM)
+        include(CheckLinkerFlag)
+        check_linker_flag(C "-fuse-ld=mold" MOLD_C_LINKER_SUPPORTED)
+        check_linker_flag(CXX "-fuse-ld=mold" MOLD_CXX_LINKER_SUPPORTED)
+        if(MOLD_C_LINKER_SUPPORTED AND MOLD_CXX_LINKER_SUPPORTED)
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
+            set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=mold")
+            message(STATUS ">>> linker: mold (${MOLD_PROGRAM})")
+        else()
+            message(STATUS ">>> linker: default (mold is not supported by the compiler)")
+        endif()
+    else()
+        message(STATUS ">>> linker: default (mold not installed)")
+    endif()
+endif()
 
 # ---------- C++ 标准 ----------
 set(CMAKE_CXX_STANDARD 20)
