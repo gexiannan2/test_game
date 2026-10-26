@@ -11,11 +11,19 @@
       "displayName": "WSL: Ubuntu-24.04 Linux Debug",
       "description": "WSL Ubuntu-24.04 Debug（产物在 out/，勿 exclude 全局 build：mongo-c-driver 的 CMake 模块在 build/cmake/）",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "binaryDir": "${sourceDir}/out/build/wsl-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
       "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Linux" ]
+        },
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
           "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}",
           "copySourcesOptions": {
@@ -39,11 +47,19 @@
       "displayName": "WSL: Ubuntu-24.04 Linux Release",
       "description": "WSL Ubuntu-24.04 Release（产物在 out/）",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "binaryDir": "${sourceDir}/out/build/wsl-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
       "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Linux" ]
+        },
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
           "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}",
           "copySourcesOptions": {
@@ -71,6 +87,18 @@
     {
       "name": "linux-release",
       "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-debug-server",
+      "displayName": "svc_game_3d_server (Debug)",
+      "configurePreset": "linux-debug",
+      "targets": [ "svc_game_3d_server" ]
+    },
+    {
+      "name": "linux-release-server",
+      "displayName": "svc_game_3d_server (Release)",
+      "configurePreset": "linux-release",
+      "targets": [ "svc_game_3d_server" ]
     }
   ]
 }
