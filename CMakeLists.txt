@@ -21,9 +21,35 @@
 
 cmake_minimum_required(VERSION 3.21.0)
 
+# ---------- 启用 ccache（必须在 project() 之前设置 launcher） ----------
+option(ENABLE_CCACHE "Enable ccache if available" ON)
+if(ENABLE_CCACHE)
+    find_program(CCACHE_PROGRAM NAMES ccache HINTS "/usr/local/bin")
+    if(CCACHE_PROGRAM)
+        message(STATUS ">>> ccache enabled: ${CCACHE_PROGRAM}")
+        set(CMAKE_C_COMPILER_LAUNCHER   "${CCACHE_PROGRAM}")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    else()
+        message(STATUS ">>> ccache requested but not found")
+    endif()
+endif()
 
 project(svc_game_3d LANGUAGES C CXX)
 
+# ---------- 链接器: 优先用 mold（大链接快 2~5x，失败回退 ld） ----------
+if(UNIX AND NOT APPLE)
+    find_program(MOLD_PROGRAM NAMES mold HINTS "/usr/local/bin")
+    if(MOLD_PROGRAM)
+        set(CMAKE_EXE_LINKER_FLAGS
+            "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
+        set(CMAKE_SHARED_LINKER_FLAGS
+            "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=mold")
+        message(STATUS ">>> linker: mold (${MOLD_PROGRAM})")
+    else()
+        message(STATUS
+            ">>> linker: default ld (mold 未安装, 可 sudo apt install mold)")
+    endif()
+endif()
 
 # ---------- C++ 标准 ----------
 set(CMAKE_CXX_STANDARD 20)
