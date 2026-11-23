@@ -25,6 +25,7 @@
           "hostOS": [ "Linux" ]
         },
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+          "forceWSL1Toolset": true,
           "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}",
           "copySourcesOptions": {
             "exclusionList": [
@@ -61,6 +62,7 @@
           "hostOS": [ "Linux" ]
         },
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+          "forceWSL1Toolset": true,
           "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}",
           "copySourcesOptions": {
             "exclusionList": [

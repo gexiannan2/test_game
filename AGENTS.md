@@ -503,7 +503,7 @@ bool CheckPosition(const Position& pos) {
 下面规则对 namespace / class / struct / enum / 函数体 / 控制语句体 一律适用：
 
 1. `{` 单独一行，列对齐于所属块（namespace / class / function 等）的 `{` 所在列。
-2. `{` 后**第一行**的可写代码必须有 1 级缩进（4 空格）。
+2. `{` 后**第一行**的可写代码至少缩进 1 级（4 空格）；class/struct 的成员采用 2 级缩进（8 空格）。 `switch` 的 `case/default` 标签例外：按第 6 节与 `switch` 对齐，其语句缩进 1 级。
 3. 后续行按所在嵌套层级继续缩进；每深 1 层多缩 4 空格。
 4. 退出块时（`}` 单独一行），缩进回到块外层级。
 5. `}` 与对应 `{` 列对齐；`}` 后可加 `// namespace <name>` / `// class <Name>` 等注释标识。
@@ -546,7 +546,7 @@ public:
 
 ### 8.1 class / struct 代码风格
 
-class、struct 内部必须使用 4 个空格缩进。访问说明符（`public:` / `private:` / `protected:`）在类体内部缩进**一级**（比 class 体多缩进 4 空格），其下的成员函数、成员变量再缩进**一级**（比访问说明符多缩进 4 空格）。
+class、struct 内部以每级 4 个空格缩进。访问说明符（`public:` / `private:` / `protected:`）在类体内部缩进**一级**（比 class 体多缩进 4 空格），其下的成员函数、成员变量再缩进**一级**（比访问说明符多缩进 4 空格）。 为匹配 clang-format 13+ 的 `IndentAccessModifiers: true`，**没有显式访问说明符的 class/struct 成员也统一缩进两级（8 空格）**。
 
 #### 正确示例
 
@@ -564,9 +564,9 @@ class Player
 ```cpp
 struct Position
 {
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
 };
 ```
 
@@ -745,7 +745,7 @@ bool PlayerManager::AddPlayer(Player* player)
 
 ### 10.0 花括号后的第一行缩进
 
-任何块的左花括号 `{` 之后**第一行**的可写代码必须有正确的缩进，禁止顶格或与 `{` 同列。这一条适用于 namespace / class / struct / enum / function / if / for / while / switch / try 等所有块。
+任何块的左花括号 `{` 之后**第一行**的可写代码必须按所在结构正确缩进，禁止无故顶格或与 `{` 同列。 `class/struct` 成员统一缩进两级；`switch` 的 `case/default` 标签按第 6 节与 `switch` 对齐，不能套用普通代码块首行缩进规则。 其余适用于 namespace / enum / function / if / for / while / try 等代码块。
 
 错误示例：
 
@@ -785,7 +785,7 @@ namespace e996
 
 ### 10.1 缩进级别
 
-每进入一个新的代码块，缩进增加一级（4 个空格）：
+通常每进入一个新的代码块，缩进增加一级（4 个空格）；class/struct 成员统一两级、switch 的 case/default 标签按第 6 节例外处理：
 
 - 函数体
 - `class` / `struct` / `union` 体
@@ -1095,28 +1095,104 @@ AI 编程助手每次输出 C++ 代码前，必须检查是否存在以下问题
 
 ---
 
-## 19. 推荐配套 .clang-format
+## 19. 配套 .clang-format 与规则协作
 
-如果项目根目录存在 `.clang-format`，AI 编程助手生成代码时也必须遵守它。
+本项目在仓库根目录同时维护 `AGENTS.md` 与 `.clang-format`，**两个文件必须同时存在且规则一致**。
 
-推荐配置如下：
+- `AGENTS.md` 是 AI 编程助手的工程级行为规则：约束修改流程、最小变更、安全、接口/ABI、线程与资源生命周期、代码风格等。
+- `.clang-format` 是 C++ 排版的可执行配置：控制 Allman 花括号、4 空格缩进、`namespace` 和访问说明符缩进、换行等。
+- AI 在生成、修改或重构 C++ 代码前，必须读取这两个文件；生成代码时同时遵守。
+- 如果两者在排版要求上发生冲突，**先报告冲突并请求确认，不得自行选用一方、静默覆盖规则或批量格式化**。
+- 只格式化本次实际修改的 C/C++ 文件；不得对整个仓库执行递归格式化，不得格式化 `third_party/`、`external/`、`vendor/`。
+- 格式化前后检查 Git diff：不得把与本次任务无关的旧代码改动或纯格式噪声混入功能修复；优先缩小格式化范围。
+- `.clang-format` 不能替代语义审查：不得据其格式化结果推断内存安全、线程安全、ABI 兼容或逻辑正确。
+- `.clang-format` 不能保证自动补齐原本缺失的花括号；所有 `if` / `else` / `for` / `while` / `do` 必须使用花括号这一规则仍由本文件强制约束。可配合 `clang-tidy` 的 `readability-braces-around-statements` 检查。
+- Windows、WSL、CI 应尽量固定一致的 clang-format 版本；升级工具版本前先验证格式化差异。
+- 本配置以 clang-format 13+ 通用的布尔型 `IndentAccessModifiers: true` 为基准，它会让无访问说明符的 struct/class 成员也缩进两级；已在第 8.1 节统一规则，不使用只在较新版本中才提供的访问修饰符分段缩进模式。
+- 配置 `SortIncludes: Never`，避免在格式化时重排老工程的 `#include`。
+
+### 19.1 推荐配置
+
+仓库根目录的 `.clang-format` 应使用下列内容（与单独提供的文件相同）：
 
 ```yaml
+# C++20 / Allman / e996
+# 与仓库根目录 AGENTS.md 第 19 节保持一致
 BasedOnStyle: Microsoft
+Standard: c++20
+
+# 统一 4 空格，不使用 Tab
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 
+# Allman：左花括号独占一行
 BreakBeforeBraces: Allman
 
+# namespace 内部每层缩进一级
+NamespaceIndentation: All
+
+# 类/结构体的访问说明符缩进一级，所有成员统一缩进两级
+# 兼容 clang-format 13+；此模式不使用 AccessModifierOffset
+IndentAccessModifiers: true
+
+# 禁止将短控制语句、代码块和函数压缩为单行
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AllowShortBlocksOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: None
 AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: None
 
+# switch case 与 switch 主体对齐
+IndentCaseLabels: false
+
+# 行宽及指针、引用
 ColumnLimit: 120
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# 不自动重排 include，避免改动历史项目对头文件包含顺序的依赖
+SortIncludes: Never
+
+# 连续空行至多保留 1 行
+MaxEmptyLinesToKeep: 1
+
+# 注意：clang-format 主要调整排版，不保证补齐缺少的 if/for/while 花括号。
+# 请结合 AGENTS.md 与 clang-tidy readability-braces-around-statements 使用。
 ```
+
+### 19.2 风格预期示例
+
+```cpp
+namespace e996
+{
+    class TcpServer
+    {
+        public:
+            bool Start()
+            {
+                if (running_)
+                {
+                    return false;
+                }
+
+                running_ = true;
+                return true;
+            }
+
+        private:
+            bool running_ = false;
+    };
+}
+```
+
+### 19.3 格式化使用约束
+
+- 开始改动前确认当前分支状态，保留用户已有的未提交修改。
+- 优先在所改文件或选中代码范围上运行 clang-format，检查格式化效果。
+- 遇到依赖库或生成代码，不要强行应用本项目格式。
+- 发现当前配置不能满足某项手工规范时，报告具体差异，不能偷偷改动已有行为约束。
 
 ---
 
@@ -1126,6 +1202,8 @@ ColumnLimit: 120
 
 ```text
 修改代码前，先读取项目根目录下的 AGENTS.md 和 .clang-format。
+如有规则冲突，先报告并请求确认，不得静默选择或批量格式化。
+只格式化本次修改的文件，并检查 Git diff，不得改动无关代码。
 所有生成和修改的 C++ 代码必须符合 AGENTS.md。
 禁止生成单行 if / for / while。
 所有控制语句即使只有一行，也必须换行并使用花括号。

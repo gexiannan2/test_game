@@ -1,0 +1,44 @@
+# C++20 / Allman / e996
+# 与仓库根目录 AGENTS.md 第 19 节保持一致
+BasedOnStyle: Microsoft
+Standard: c++20
+
+# 统一 4 空格，不使用 Tab
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# Allman：左花括号独占一行
+BreakBeforeBraces: Allman
+
+# namespace 内部每层缩进一级
+NamespaceIndentation: All
+
+# 类/结构体的访问说明符缩进一级，所有成员统一缩进两级
+# 兼容 clang-format 13+；此模式不使用 AccessModifierOffset
+IndentAccessModifiers: true
+
+# 禁止将短控制语句、代码块和函数压缩为单行
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: None
+
+# switch case 与 switch 主体对齐
+IndentCaseLabels: false
+
+# 行宽及指针、引用
+ColumnLimit: 120
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# 不自动重排 include，避免改动历史项目对头文件包含顺序的依赖
+SortIncludes: Never
+
+# 连续空行至多保留 1 行
+MaxEmptyLinesToKeep: 1
+
+# 注意：clang-format 主要调整排版，不保证补齐缺少的 if/for/while 花括号。
+# 请结合 AGENTS.md 与 clang-tidy readability-braces-around-statements 使用。
